@@ -9,6 +9,8 @@ public sealed class RoomTypeControl : UserControl
 {
     private readonly DataGridView _grid = ClassicUi.Grid();
     private readonly TextBox _search = new();
+    private readonly System.Windows.Forms.Timer _searchTimer = new() { Interval = 300 };
+    private int _loadVersion;
 
     public RoomTypeControl()
     {
@@ -46,8 +48,18 @@ public sealed class RoomTypeControl : UserControl
         _grid.RowTemplate.Height = 40;
         ConfigureGrid();
         _grid.DataBindingComplete += (_, _) => SetRowIcons();
-        _search.TextChanged += async (_, _) => await LoadRoomTypesAsync();
-        _grid.CellContentClick += Grid_CellContentClick;
+        _search.TextChanged += (_, _) =>
+        {
+            _searchTimer.Stop();
+            _searchTimer.Start();
+        };
+        _searchTimer.Tick += async (_, _) =>
+        {
+            _searchTimer.Stop();
+            await LoadRoomTypesAsync();
+        };
+        Disposed += (_, _) => _searchTimer.Dispose();
+        _grid.CellClick += Grid_CellClick;
         Load += async (_, _) => await LoadRoomTypesAsync();
 
         Controls.Add(_grid);
@@ -94,6 +106,7 @@ public sealed class RoomTypeControl : UserControl
             return;
         }
 
+        int version = ++_loadVersion;
         try
         {
             string keyword = _search.Text.Trim();
@@ -104,7 +117,7 @@ public sealed class RoomTypeControl : UserControl
                 query = query.Where(x => x.MaLph.Contains(keyword) || (x.TenLph != null && x.TenLph.Contains(keyword)));
             }
 
-            _grid.DataSource = await query
+            var rows = await query
                 .OrderBy(x => x.MaLph)
                 .Select(x => new RoomTypeRow
                 {
@@ -116,9 +129,21 @@ public sealed class RoomTypeControl : UserControl
                     GiaGio = x.GiaGio
                 })
                 .ToListAsync();
+            // Bỏ kết quả cũ nếu đã có lần tải mới hơn hoặc control đã bị đóng
+            if (IsDisposed || version != _loadVersion)
+            {
+                return;
+            }
+
+            _grid.DataSource = rows;
         }
         catch (Exception ex)
         {
+            if (IsDisposed || version != _loadVersion)
+            {
+                return;
+            }
+
             MessageBox.Show("Lỗi khi tải loại phòng: " + ex.GetBaseException().Message,
                 "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
@@ -133,7 +158,7 @@ public sealed class RoomTypeControl : UserControl
         }
     }
 
-    private async void Grid_CellContentClick(object? sender, DataGridViewCellEventArgs e)
+    private async void Grid_CellClick(object? sender, DataGridViewCellEventArgs e)
     {
         if (e.RowIndex < 0 || e.ColumnIndex < 0)
         {

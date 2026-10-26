@@ -9,6 +9,8 @@ public sealed class RoomListControl : UserControl
 {
     private readonly DataGridView _grid = ClassicUi.Grid();
     private readonly TextBox _search = new();
+    private readonly System.Windows.Forms.Timer _searchTimer = new() { Interval = 300 };
+    private int _loadVersion;
 
     public RoomListControl()
     {
@@ -46,8 +48,18 @@ public sealed class RoomListControl : UserControl
         _grid.RowTemplate.Height = 40;
         ConfigureGrid();
         _grid.DataBindingComplete += (_, _) => SetRowIcons();
-        _search.TextChanged += async (_, _) => await LoadRoomsAsync();
-        _grid.CellContentClick += Grid_CellContentClick;
+        _search.TextChanged += (_, _) =>
+        {
+            _searchTimer.Stop();
+            _searchTimer.Start();
+        };
+        _searchTimer.Tick += async (_, _) =>
+        {
+            _searchTimer.Stop();
+            await LoadRoomsAsync();
+        };
+        Disposed += (_, _) => _searchTimer.Dispose();
+        _grid.CellClick += Grid_CellClick;
         Load += async (_, _) => await LoadRoomsAsync();
 
         Controls.Add(_grid);
@@ -89,6 +101,7 @@ public sealed class RoomListControl : UserControl
             return;
         }
 
+        int version = ++_loadVersion;
         try
         {
             string keyword = _search.Text.Trim();
@@ -110,10 +123,21 @@ public sealed class RoomListControl : UserControl
                     GhiChu = p.GhiChu ?? string.Empty
                 })
                 .ToListAsync();
+            // Bỏ kết quả cũ nếu đã có lần tải mới hơn hoặc control đã bị đóng
+            if (IsDisposed || version != _loadVersion)
+            {
+                return;
+            }
+
             _grid.DataSource = rooms;
         }
         catch (Exception ex)
         {
+            if (IsDisposed || version != _loadVersion)
+            {
+                return;
+            }
+
             MessageBox.Show("Lỗi tải danh sách phòng: " + ex.GetBaseException().Message,
                 "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
@@ -128,7 +152,7 @@ public sealed class RoomListControl : UserControl
         }
     }
 
-    private async void Grid_CellContentClick(object? sender, DataGridViewCellEventArgs e)
+    private async void Grid_CellClick(object? sender, DataGridViewCellEventArgs e)
     {
         if (e.RowIndex < 0 || e.ColumnIndex < 0)
         {

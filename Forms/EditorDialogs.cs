@@ -31,7 +31,11 @@ public sealed class RoomEditorDialog : Form
         _code.CharacterCasing = CharacterCasing.Upper;
         _code.ReadOnly = maPhong is not null;
         _note.MaxLength = 100;
-        _status.Items.AddRange(["Bình thường", "Đã đặt", "Đang thuê", "Đang sửa chữa"]);
+        // Thêm mới chỉ cho "Bình thường"/"Đang sửa chữa"; "Đã đặt"/"Đang thuê" chỉ có khi sửa phòng đã có phiếu
+        object[] statuses = maPhong is null
+            ? new object[] { "Bình thường", "Đang sửa chữa" }
+            : new object[] { "Bình thường", "Đã đặt", "Đang thuê", "Đang sửa chữa" };
+        _status.Items.AddRange(statuses);
         _cleaning.Items.AddRange(["Đã dọn dẹp", "Chưa dọn dẹp"]);
         _status.SelectedIndex = 0;
         _cleaning.SelectedIndex = 0;
@@ -435,13 +439,13 @@ public sealed class RoomTypeEditorDialog : Form
             return;
         }
 
-        if (!TryParseMoney(_dailyPrice.Text, out decimal dailyPrice) || dailyPrice < 0)
+        if (!TryParseMoney(_dailyPrice.Text, out decimal dailyPrice) || dailyPrice <= 0)
         {
             Warn("Giá ngày không hợp lệ.", _dailyPrice);
             return;
         }
 
-        if (!TryParseMoney(_hourlyPrice.Text, out decimal hourlyPrice) || hourlyPrice < 0)
+        if (!TryParseMoney(_hourlyPrice.Text, out decimal hourlyPrice) || hourlyPrice <= 0)
         {
             Warn("Giá giờ không hợp lệ.", _hourlyPrice);
             return;

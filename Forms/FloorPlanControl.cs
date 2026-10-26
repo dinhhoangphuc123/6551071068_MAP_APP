@@ -8,7 +8,13 @@ namespace _6551071068_MAP_APP.Forms;
 public sealed class FloorPlanControl : UserControl
 {
     private readonly TextBox _search = new();
-    private readonly DateTimePicker _date = new() { Format = DateTimePickerFormat.Short };
+    // Tick checkbox mới lọc "phòng còn trống theo ngày", bỏ tick thì xem tất cả
+    private readonly DateTimePicker _date = new()
+    {
+        Format = DateTimePickerFormat.Short,
+        ShowCheckBox = true,
+        Checked = false
+    };
     private readonly DateTimePicker _time = new()
     {
         Format = DateTimePickerFormat.Time,
@@ -30,7 +36,6 @@ public sealed class FloorPlanControl : UserControl
     private readonly RadioButton _notClean = Radio("Chưa dọn dẹp");
     private readonly System.Windows.Forms.Timer _searchTimer = new() { Interval = 300 };
     private bool _loading;
-    private bool _dateFilterEnabled;
 
     public FloorPlanControl()
     {
@@ -51,16 +56,12 @@ public sealed class FloorPlanControl : UserControl
         Controls.Add(_grid);
 
         _search.TextChanged += (_, _) => ScheduleReload();
-        _date.ValueChanged += (_, _) =>
-        {
-            _dateFilterEnabled = true;
-            if (!_loading) ScheduleReload();
-        };
+        _date.ValueChanged += (_, _) => ScheduleReload();
         foreach (RadioButton radio in FilterRadios())
         {
             radio.CheckedChanged += (_, _) =>
             {
-                if (!_loading && radio.Checked) ScheduleReload();
+                if (radio.Checked) ScheduleReload();
             };
         }
 
@@ -242,7 +243,13 @@ public sealed class FloorPlanControl : UserControl
 
     private async Task LoadRoomsAsync()
     {
-        if (_loading || IsDisposed) return;
+        if (IsDisposed) return;
+        if (_loading)
+        {
+            // Đang tải: hẹn tải lại sau để không bỏ mất thay đổi bộ lọc mới
+            ScheduleReload();
+            return;
+        }
 
         _loading = true;
         try
@@ -274,7 +281,7 @@ public sealed class FloorPlanControl : UserControl
             string keyword = _search.Text.Trim();
             if (keyword.Length > 0) query = query.Where(p => p.MaPh.Contains(keyword));
 
-            if (_dateFilterEnabled)
+            if (_date.Checked)
             {
                 DateTime start = _date.Value.Date;
                 DateTime end = start.AddDays(1);

@@ -1,0 +1,939 @@
+diff --git a/Data/HotelManagementContext.cs b/Data/HotelManagementContext.cs
+index ca053a8..76504d9 100644
+--- a/Data/HotelManagementContext.cs
++++ b/Data/HotelManagementContext.cs
+@@ -22,6 +22,13 @@ public sealed class HotelManagementContext : DbContext
+     public DbSet<Phong> Phongs => Set<Phong>();
+     public DbSet<LoaiPhong> LoaiPhongs => Set<LoaiPhong>();
+     public DbSet<CTDP> Ctdps => Set<CTDP>();
++    public DbSet<KhachHang> KhachHangs => Set<KhachHang>();
++    public DbSet<PhieuThue> PhieuThues => Set<PhieuThue>();
++    public DbSet<HoaDon> HoaDons => Set<HoaDon>();
++    public DbSet<TienNghi> TienNghis => Set<TienNghi>();
++    public DbSet<CTTN> Cttns => Set<CTTN>();
++    public DbSet<DichVu> DichVus => Set<DichVu>();
++    public DbSet<CTDV> Ctdvs => Set<CTDV>();
+ 
+     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+     {
+@@ -39,6 +46,14 @@ public sealed class HotelManagementContext : DbContext
+             entity.HasKey(x => x.MaNv);
+             entity.Property(x => x.MaNv).HasColumnName("MaNV").HasMaxLength(5).IsUnicode().IsRequired();
+             entity.Property(x => x.TenNv).HasColumnName("TenNV").HasMaxLength(50).IsUnicode().IsRequired();
++            entity.Property(x => x.ChucVu).HasColumnName("ChucVu").HasMaxLength(50).IsUnicode().IsRequired();
++            entity.Property(x => x.Luong).HasColumnName("Luong").HasColumnType("money").IsRequired();
++            entity.Property(x => x.Sdt).HasColumnName("SDT").HasMaxLength(10).IsUnicode().IsRequired();
++            entity.Property(x => x.Cccd).HasColumnName("CCCD").HasMaxLength(12).IsUnicode().IsRequired();
++            entity.Property(x => x.NgaySinh).HasColumnName("NgaySinh").HasColumnType("date").IsRequired();
++            entity.Property(x => x.GioiTinh).HasColumnName("GioiTinh").HasMaxLength(3).IsUnicode().IsRequired();
++            entity.Property(x => x.DiaChi).HasColumnName("DiaChi").HasMaxLength(100).IsUnicode().IsRequired();
++            entity.Property(x => x.Email).HasColumnName("Email").HasMaxLength(100).IsUnicode();
+             entity.Property(x => x.DaXoa).HasColumnName("DaXoa");
+         });
+ 
+@@ -85,19 +100,118 @@ public sealed class HotelManagementContext : DbContext
+                 .HasPrincipalKey(x => x.MaLph);
+         });
+ 
++        // Các bảng có trigger phải khai báo để EF Core không dùng mệnh đề OUTPUT khi SaveChanges
+         modelBuilder.Entity<CTDP>(entity =>
+         {
+-            entity.ToTable("CTDP");
++            entity.ToTable("CTDP", t => t.HasTrigger("CapNhatGiaCTDP"));
+             entity.HasKey(x => x.MaCtdp);
+             entity.Property(x => x.MaCtdp).HasColumnName("MaCTDP").HasMaxLength(7).IsUnicode().IsRequired();
++            entity.Property(x => x.SoNguoi).HasColumnName("SoNguoi");
++            entity.Property(x => x.MaPt).HasColumnName("MaPT").HasMaxLength(5).IsUnicode().IsRequired();
+             entity.Property(x => x.MaPh).HasColumnName("MaPH").HasMaxLength(5).IsUnicode().IsRequired();
+             entity.Property(x => x.Checkin).HasColumnName("CheckIn").HasColumnType("smalldatetime").IsRequired();
+             entity.Property(x => x.CheckOut).HasColumnName("CheckOut").HasColumnType("smalldatetime").IsRequired();
++            entity.Property(x => x.TrangThai).HasColumnName("TrangThai").HasMaxLength(20).IsUnicode().IsRequired();
++            entity.Property(x => x.DonGia).HasColumnName("DonGia").HasColumnType("money");
++            entity.Property(x => x.ThanhTien).HasColumnName("ThanhTien").HasColumnType("money");
+             entity.Property(x => x.DaXoa).HasColumnName("DaXoa");
++            entity.Property(x => x.TheoGio).HasColumnName("TheoGio");
+             entity.HasOne(x => x.MaPhNavigation)
+                 .WithMany(x => x.Ctdps)
+                 .HasForeignKey(x => x.MaPh)
+                 .HasPrincipalKey(x => x.MaPh);
++            entity.HasOne(x => x.MaPtNavigation)
++                .WithMany(x => x.Ctdps)
++                .HasForeignKey(x => x.MaPt)
++                .HasPrincipalKey(x => x.MaPt);
++        });
++
++        modelBuilder.Entity<KhachHang>(entity =>
++        {
++            entity.ToTable("KhachHang");
++            entity.HasKey(x => x.MaKh);
++            entity.Property(x => x.MaKh).HasColumnName("MaKH").HasMaxLength(5).IsUnicode().IsRequired();
++            entity.Property(x => x.TenKh).HasColumnName("TenKH").HasMaxLength(50).IsUnicode().IsRequired();
++            entity.Property(x => x.Sdt).HasColumnName("SDT").HasMaxLength(10).IsUnicode();
++            entity.Property(x => x.CccdPassport).HasColumnName("CCCD/Passport").HasMaxLength(12).IsUnicode().IsRequired();
++            entity.Property(x => x.QuocTich).HasColumnName("QuocTich").HasMaxLength(30).IsUnicode().IsRequired();
++            entity.Property(x => x.GioiTinh).HasColumnName("GioiTinh").HasMaxLength(3).IsUnicode().IsRequired();
++            entity.Property(x => x.DaXoa).HasColumnName("DaXoa");
++        });
++
++        modelBuilder.Entity<PhieuThue>(entity =>
++        {
++            entity.ToTable("PhieuThue");
++            entity.HasKey(x => x.MaPt);
++            entity.Property(x => x.MaPt).HasColumnName("MaPT").HasMaxLength(5).IsUnicode().IsRequired();
++            entity.Property(x => x.NgPt).HasColumnName("NgPT").HasColumnType("smalldatetime").IsRequired();
++            entity.Property(x => x.MaKh).HasColumnName("MaKH").HasMaxLength(5).IsUnicode().IsRequired();
++            entity.Property(x => x.MaNv).HasColumnName("MaNV").HasMaxLength(5).IsUnicode().IsRequired();
++            entity.Property(x => x.DaXoa).HasColumnName("DaXoa");
++            entity.HasOne(x => x.MaKhNavigation).WithMany().HasForeignKey(x => x.MaKh).HasPrincipalKey(x => x.MaKh);
++            entity.HasOne(x => x.MaNvNavigation).WithMany().HasForeignKey(x => x.MaNv).HasPrincipalKey(x => x.MaNv);
++        });
++
++        modelBuilder.Entity<HoaDon>(entity =>
++        {
++            entity.ToTable("HoaDon", t => t.HasTrigger("CapNhatGiaTriHoaDon"));
++            entity.HasKey(x => x.MaHd);
++            entity.Property(x => x.MaHd).HasColumnName("MaHD").HasMaxLength(5).IsUnicode().IsRequired();
++            entity.Property(x => x.NgHd).HasColumnName("NgHD").HasColumnType("smalldatetime");
++            entity.Property(x => x.TriGia).HasColumnName("TriGia").HasColumnType("money");
++            entity.Property(x => x.MaNv).HasColumnName("MaNV").HasMaxLength(5).IsUnicode();
++            entity.Property(x => x.TrangThai).HasColumnName("TrangThai").HasMaxLength(20).IsUnicode().IsRequired();
++            entity.Property(x => x.MaCtdp).HasColumnName("MaCTDP").HasMaxLength(7).IsUnicode().IsRequired();
++            entity.Property(x => x.DaXoa).HasColumnName("DaXoa");
++            entity.HasOne(x => x.MaNvNavigation).WithMany().HasForeignKey(x => x.MaNv).HasPrincipalKey(x => x.MaNv);
++            entity.HasOne(x => x.MaCtdpNavigation).WithMany().HasForeignKey(x => x.MaCtdp).HasPrincipalKey(x => x.MaCtdp);
++        });
++
++        modelBuilder.Entity<TienNghi>(entity =>
++        {
++            entity.ToTable("TienNghi");
++            entity.HasKey(x => x.MaTn);
++            entity.Property(x => x.MaTn).HasColumnName("MaTN").HasMaxLength(5).IsUnicode().IsRequired();
++            entity.Property(x => x.TenTn).HasColumnName("TenTN").HasMaxLength(50).IsUnicode().IsRequired();
++            entity.Property(x => x.DaXoa).HasColumnName("DaXoa");
++        });
++
++        modelBuilder.Entity<CTTN>(entity =>
++        {
++            entity.ToTable("CTTN");
++            entity.HasKey(x => new { x.MaLph, x.MaTn });
++            entity.Property(x => x.MaLph).HasColumnName("MaLPH").HasMaxLength(5).IsUnicode().IsRequired();
++            entity.Property(x => x.MaTn).HasColumnName("MaTN").HasMaxLength(5).IsUnicode().IsRequired();
++            entity.Property(x => x.Sl).HasColumnName("SL");
++            entity.Property(x => x.DaXoa).HasColumnName("DaXoa");
++            entity.HasOne(x => x.MaLphNavigation).WithMany().HasForeignKey(x => x.MaLph).HasPrincipalKey(x => x.MaLph);
++            entity.HasOne(x => x.MaTnNavigation).WithMany().HasForeignKey(x => x.MaTn).HasPrincipalKey(x => x.MaTn);
++        });
++
++        modelBuilder.Entity<DichVu>(entity =>
++        {
++            entity.ToTable("DichVu");
++            entity.HasKey(x => x.MaDv);
++            entity.Property(x => x.MaDv).HasColumnName("MaDV").HasMaxLength(5).IsUnicode().IsRequired();
++            entity.Property(x => x.TenDv).HasColumnName("TenDV").HasMaxLength(20).IsUnicode().IsRequired();
++            entity.Property(x => x.DonGia).HasColumnName("DonGia").HasColumnType("money").IsRequired();
++            entity.Property(x => x.SlConLai).HasColumnName("SLConLai");
++            entity.Property(x => x.LoaiDv).HasColumnName("LoaiDV").HasMaxLength(20).IsUnicode().IsRequired();
++            entity.Property(x => x.DaXoa).HasColumnName("DaXoa");
++        });
++
++        modelBuilder.Entity<CTDV>(entity =>
++        {
++            entity.ToTable("CTDV", t => t.HasTrigger("CapNhatGiaDV"));
++            entity.HasKey(x => new { x.MaCtdp, x.MaDv });
++            entity.Property(x => x.MaCtdp).HasColumnName("MaCTDP").HasMaxLength(7).IsUnicode().IsRequired();
++            entity.Property(x => x.MaDv).HasColumnName("MaDV").HasMaxLength(5).IsUnicode().IsRequired();
++            entity.Property(x => x.Sl).HasColumnName("SL").IsRequired();
++            entity.Property(x => x.DonGia).HasColumnName("DonGia").HasColumnType("money");
++            entity.Property(x => x.DaXoa).HasColumnName("DaXoa");
++            entity.Property(x => x.ThanhTien).HasColumnName("ThanhTien").HasColumnType("money");
++            entity.HasOne(x => x.MaCtdpNavigation).WithMany().HasForeignKey(x => x.MaCtdp).HasPrincipalKey(x => x.MaCtdp);
++            entity.HasOne(x => x.MaDvNavigation).WithMany().HasForeignKey(x => x.MaDv).HasPrincipalKey(x => x.MaDv);
+         });
+     }
+ }
+@@ -106,6 +220,14 @@ public sealed class NhanVien
+ {
+     public string MaNv { get; set; } = string.Empty;
+     public string TenNv { get; set; } = string.Empty;
++    public string ChucVu { get; set; } = string.Empty;
++    public decimal Luong { get; set; }
++    public string Sdt { get; set; } = string.Empty;
++    public string Cccd { get; set; } = string.Empty;
++    public DateTime NgaySinh { get; set; }
++    public string GioiTinh { get; set; } = string.Empty;
++    public string DiaChi { get; set; } = string.Empty;
++    public string? Email { get; set; }
+     public bool? DaXoa { get; set; }
+ }
+ 
+@@ -145,9 +267,91 @@ public sealed class Phong
+ public sealed class CTDP
+ {
+     public string MaCtdp { get; set; } = string.Empty;
++    public int? SoNguoi { get; set; }
++    public string MaPt { get; set; } = string.Empty;
+     public string MaPh { get; set; } = string.Empty;
+     public DateTime Checkin { get; set; }
+     public DateTime CheckOut { get; set; }
++    public string TrangThai { get; set; } = string.Empty;
++    public decimal? DonGia { get; set; }
++    public decimal? ThanhTien { get; set; }
+     public bool? DaXoa { get; set; }
++    public bool? TheoGio { get; set; }
+     public Phong? MaPhNavigation { get; set; }
++    public PhieuThue? MaPtNavigation { get; set; }
++}
++
++public sealed class KhachHang
++{
++    public string MaKh { get; set; } = string.Empty;
++    public string TenKh { get; set; } = string.Empty;
++    public string? Sdt { get; set; }
++    public string CccdPassport { get; set; } = string.Empty;
++    public string QuocTich { get; set; } = string.Empty;
++    public string GioiTinh { get; set; } = string.Empty;
++    public bool? DaXoa { get; set; }
++}
++
++public sealed class PhieuThue
++{
++    public string MaPt { get; set; } = string.Empty;
++    public DateTime NgPt { get; set; }
++    public string MaKh { get; set; } = string.Empty;
++    public string MaNv { get; set; } = string.Empty;
++    public bool? DaXoa { get; set; }
++    public KhachHang? MaKhNavigation { get; set; }
++    public NhanVien? MaNvNavigation { get; set; }
++    public ICollection<CTDP> Ctdps { get; set; } = new List<CTDP>();
++}
++
++public sealed class HoaDon
++{
++    public string MaHd { get; set; } = string.Empty;
++    public DateTime? NgHd { get; set; }
++    public decimal? TriGia { get; set; }
++    public string? MaNv { get; set; }
++    public string TrangThai { get; set; } = string.Empty;
++    public string MaCtdp { get; set; } = string.Empty;
++    public bool? DaXoa { get; set; }
++    public NhanVien? MaNvNavigation { get; set; }
++    public CTDP? MaCtdpNavigation { get; set; }
++}
++
++public sealed class TienNghi
++{
++    public string MaTn { get; set; } = string.Empty;
++    public string TenTn { get; set; } = string.Empty;
++    public bool? DaXoa { get; set; }
++}
++
++public sealed class CTTN
++{
++    public string MaLph { get; set; } = string.Empty;
++    public string MaTn { get; set; } = string.Empty;
++    public int? Sl { get; set; }
++    public bool? DaXoa { get; set; }
++    public LoaiPhong? MaLphNavigation { get; set; }
++    public TienNghi? MaTnNavigation { get; set; }
++}
++
++public sealed class DichVu
++{
++    public string MaDv { get; set; } = string.Empty;
++    public string TenDv { get; set; } = string.Empty;
++    public decimal DonGia { get; set; }
++    public int? SlConLai { get; set; }
++    public string LoaiDv { get; set; } = string.Empty;
++    public bool? DaXoa { get; set; }
++}
++
++public sealed class CTDV
++{
++    public string MaCtdp { get; set; } = string.Empty;
++    public string MaDv { get; set; } = string.Empty;
++    public int Sl { get; set; }
++    public decimal? DonGia { get; set; }
++    public bool? DaXoa { get; set; }
++    public decimal? ThanhTien { get; set; }
++    public CTDP? MaCtdpNavigation { get; set; }
++    public DichVu? MaDvNavigation { get; set; }
+ }
+diff --git a/Form1.Designer.cs b/Form1.Designer.cs
+deleted file mode 100644
+index 0723f92..0000000
+--- a/Form1.Designer.cs
++++ /dev/null
+@@ -1,39 +0,0 @@
+-﻿namespace _6551071068_MAP_APP
+-{
+-    partial class Form1
+-    {
+-        /// <summary>
+-        ///  Required designer variable.
+-        /// </summary>
+-        private System.ComponentModel.IContainer components = null;
+-
+-        /// <summary>
+-        ///  Clean up any resources being used.
+-        /// </summary>
+-        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+-        protected override void Dispose(bool disposing)
+-        {
+-            if (disposing && (components != null))
+-            {
+-                components.Dispose();
+-            }
+-            base.Dispose(disposing);
+-        }
+-
+-        #region Windows Form Designer generated code
+-
+-        /// <summary>
+-        ///  Required method for Designer support - do not modify
+-        ///  the contents of this method with the code editor.
+-        /// </summary>
+-        private void InitializeComponent()
+-        {
+-            components = new System.ComponentModel.Container();
+-            AutoScaleMode = AutoScaleMode.Font;
+-            ClientSize = new Size(800, 450);
+-            Text = "Form1";
+-        }
+-
+-        #endregion
+-    }
+-}
+diff --git a/Form1.cs b/Form1.cs
+deleted file mode 100644
+index e36cf02..0000000
+--- a/Form1.cs
++++ /dev/null
+@@ -1,10 +0,0 @@
+-namespace _6551071068_MAP_APP
+-{
+-    public partial class Form1 : Form
+-    {
+-        public Form1()
+-        {
+-            InitializeComponent();
+-        }
+-    }
+-}
+diff --git a/Form1.resx b/Form1.resx
+deleted file mode 100644
+index 1af7de1..0000000
+--- a/Form1.resx
++++ /dev/null
+@@ -1,120 +0,0 @@
+-﻿<?xml version="1.0" encoding="utf-8"?>
+-<root>
+-  <!-- 
+-    Microsoft ResX Schema 
+-    
+-    Version 2.0
+-    
+-    The primary goals of this format is to allow a simple XML format 
+-    that is mostly human readable. The generation and parsing of the 
+-    various data types are done through the TypeConverter classes 
+-    associated with the data types.
+-    
+-    Example:
+-    
+-    ... ado.net/XML headers & schema ...
+-    <resheader name="resmimetype">text/microsoft-resx</resheader>
+-    <resheader name="version">2.0</resheader>
+-    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+-    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+-    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+-    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+-    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+-        <value>[base64 mime encoded serialized .NET Framework object]</value>
+-    </data>
+-    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+-        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+-        <comment>This is a comment</comment>
+-    </data>
+-                
+-    There are any number of "resheader" rows that contain simple 
+-    name/value pairs.
+-    
+-    Each data row contains a name, and value. The row also contains a 
+-    type or mimetype. Type corresponds to a .NET class that support 
+-    text/value conversion through the TypeConverter architecture. 
+-    Classes that don't support this are serialized and stored with the 
+-    mimetype set.
+-    
+-    The mimetype is used for serialized objects, and tells the 
+-    ResXResourceReader how to depersist the object. This is currently not 
+-    extensible. For a given mimetype the value must be set accordingly:
+-    
+-    Note - application/x-microsoft.net.object.binary.base64 is the format 
+-    that the ResXResourceWriter will generate, however the reader can 
+-    read any of the formats listed below.
+-    
+-    mimetype: application/x-microsoft.net.object.binary.base64
+-    value   : The object must be serialized with 
+-            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+-            : and then encoded with base64 encoding.
+-    
+-    mimetype: application/x-microsoft.net.object.soap.base64
+-    value   : The object must be serialized with 
+-            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+-            : and then encoded with base64 encoding.
+-
+-    mimetype: application/x-microsoft.net.object.bytearray.base64
+-    value   : The object must be serialized into a byte array 
+-            : using a System.ComponentModel.TypeConverter
+-            : and then encoded with base64 encoding.
+-    -->
+-  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+-    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+-    <xsd:element name="root" msdata:IsDataSet="true">
+-      <xsd:complexType>
+-        <xsd:choice maxOccurs="unbounded">
+-          <xsd:element name="metadata">
+-            <xsd:complexType>
+-              <xsd:sequence>
+-                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+-              </xsd:sequence>
+-              <xsd:attribute name="name" use="required" type="xsd:string" />
+-              <xsd:attribute name="type" type="xsd:string" />
+-              <xsd:attribute name="mimetype" type="xsd:string" />
+-              <xsd:attribute ref="xml:space" />
+-            </xsd:complexType>
+-          </xsd:element>
+-          <xsd:element name="assembly">
+-            <xsd:complexType>
+-              <xsd:attribute name="alias" type="xsd:string" />
+-              <xsd:attribute name="name" type="xsd:string" />
+-            </xsd:complexType>
+-          </xsd:element>
+-          <xsd:element name="data">
+-            <xsd:complexType>
+-              <xsd:sequence>
+-                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+-                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+-              </xsd:sequence>
+-              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+-              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+-              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+-              <xsd:attribute ref="xml:space" />
+-            </xsd:complexType>
+-          </xsd:element>
+-          <xsd:element name="resheader">
+-            <xsd:complexType>
+-              <xsd:sequence>
+-                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+-              </xsd:sequence>
+-              <xsd:attribute name="name" type="xsd:string" use="required" />
+-            </xsd:complexType>
+-          </xsd:element>
+-        </xsd:choice>
+-      </xsd:complexType>
+-    </xsd:element>
+-  </xsd:schema>
+-  <resheader name="resmimetype">
+-    <value>text/microsoft-resx</value>
+-  </resheader>
+-  <resheader name="version">
+-    <value>2.0</value>
+-  </resheader>
+-  <resheader name="reader">
+-    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+-  </resheader>
+-  <resheader name="writer">
+-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+-  </resheader>
+-</root>
+\ No newline at end of file
+diff --git a/Forms/EditorDialogs.cs b/Forms/EditorDialogs.cs
+index 65f0297..ed8d8bb 100644
+--- a/Forms/EditorDialogs.cs
++++ b/Forms/EditorDialogs.cs
+@@ -31,7 +31,11 @@ public sealed class RoomEditorDialog : Form
+         _code.CharacterCasing = CharacterCasing.Upper;
+         _code.ReadOnly = maPhong is not null;
+         _note.MaxLength = 100;
+-        _status.Items.AddRange(["Bình thường", "Đã đặt", "Đang thuê", "Đang sửa chữa"]);
++        // Thêm mới chỉ cho "Bình thường"/"Đang sửa chữa"; "Đã đặt"/"Đang thuê" chỉ có khi sửa phòng đã có phiếu
++        object[] statuses = maPhong is null
++            ? new object[] { "Bình thường", "Đang sửa chữa" }
++            : new object[] { "Bình thường", "Đã đặt", "Đang thuê", "Đang sửa chữa" };
++        _status.Items.AddRange(statuses);
+         _cleaning.Items.AddRange(["Đã dọn dẹp", "Chưa dọn dẹp"]);
+         _status.SelectedIndex = 0;
+         _cleaning.SelectedIndex = 0;
+@@ -435,13 +439,13 @@ public sealed class RoomTypeEditorDialog : Form
+             return;
+         }
+ 
+-        if (!TryParseMoney(_dailyPrice.Text, out decimal dailyPrice) || dailyPrice < 0)
++        if (!TryParseMoney(_dailyPrice.Text, out decimal dailyPrice) || dailyPrice <= 0)
+         {
+             Warn("Giá ngày không hợp lệ.", _dailyPrice);
+             return;
+         }
+ 
+-        if (!TryParseMoney(_hourlyPrice.Text, out decimal hourlyPrice) || hourlyPrice < 0)
++        if (!TryParseMoney(_hourlyPrice.Text, out decimal hourlyPrice) || hourlyPrice <= 0)
+         {
+             Warn("Giá giờ không hợp lệ.", _hourlyPrice);
+             return;
+diff --git a/Forms/FloorPlanControl.cs b/Forms/FloorPlanControl.cs
+index e795dbd..9036e7b 100644
+--- a/Forms/FloorPlanControl.cs
++++ b/Forms/FloorPlanControl.cs
+@@ -8,7 +8,13 @@ namespace _6551071068_MAP_APP.Forms;
+ public sealed class FloorPlanControl : UserControl
+ {
+     private readonly TextBox _search = new();
+-    private readonly DateTimePicker _date = new() { Format = DateTimePickerFormat.Short };
++    // Tick checkbox mới lọc "phòng còn trống theo ngày", bỏ tick thì xem tất cả
++    private readonly DateTimePicker _date = new()
++    {
++        Format = DateTimePickerFormat.Short,
++        ShowCheckBox = true,
++        Checked = false
++    };
+     private readonly DateTimePicker _time = new()
+     {
+         Format = DateTimePickerFormat.Time,
+@@ -30,7 +36,6 @@ public sealed class FloorPlanControl : UserControl
+     private readonly RadioButton _notClean = Radio("Chưa dọn dẹp");
+     private readonly System.Windows.Forms.Timer _searchTimer = new() { Interval = 300 };
+     private bool _loading;
+-    private bool _dateFilterEnabled;
+ 
+     public FloorPlanControl()
+     {
+@@ -51,16 +56,12 @@ public sealed class FloorPlanControl : UserControl
+         Controls.Add(_grid);
+ 
+         _search.TextChanged += (_, _) => ScheduleReload();
+-        _date.ValueChanged += (_, _) =>
+-        {
+-            _dateFilterEnabled = true;
+-            if (!_loading) ScheduleReload();
+-        };
++        _date.ValueChanged += (_, _) => ScheduleReload();
+         foreach (RadioButton radio in FilterRadios())
+         {
+             radio.CheckedChanged += (_, _) =>
+             {
+-                if (!_loading && radio.Checked) ScheduleReload();
++                if (radio.Checked) ScheduleReload();
+             };
+         }
+ 
+@@ -242,7 +243,13 @@ public sealed class FloorPlanControl : UserControl
+ 
+     private async Task LoadRoomsAsync()
+     {
+-        if (_loading || IsDisposed) return;
++        if (IsDisposed) return;
++        if (_loading)
++        {
++            // Đang tải: hẹn tải lại sau để không bỏ mất thay đổi bộ lọc mới
++            ScheduleReload();
++            return;
++        }
+ 
+         _loading = true;
+         try
+@@ -274,7 +281,7 @@ public sealed class FloorPlanControl : UserControl
+             string keyword = _search.Text.Trim();
+             if (keyword.Length > 0) query = query.Where(p => p.MaPh.Contains(keyword));
+ 
+-            if (_dateFilterEnabled)
++            if (_date.Checked)
+             {
+                 DateTime start = _date.Value.Date;
+                 DateTime end = start.AddDays(1);
+diff --git a/Forms/FormTrangChu.cs b/Forms/FormTrangChu.cs
+new file mode 100644
+index 0000000..21e321a
+--- /dev/null
++++ b/Forms/FormTrangChu.cs
+@@ -0,0 +1,19 @@
++using _6551071068_MAP_APP.UI;
++
++namespace _6551071068_MAP_APP.Forms;
++
++/// <summary>Màn hình chào ở trang chủ.</summary>
++public sealed class FormTrangChu : UserControl
++{
++    public FormTrangChu()
++    {
++        Dock = DockStyle.Fill;
++        BackColor = ClassicUi.Honeydew;
++        Controls.Add(new PictureBox
++        {
++            Dock = DockStyle.Fill,
++            Image = ClassicUi.Image("pictureIcon.png"),
++            SizeMode = PictureBoxSizeMode.StretchImage
++        });
++    }
++}
+diff --git a/Forms/MainForm.cs b/Forms/MainForm.cs
+index 28283b5..fcb28da 100644
+--- a/Forms/MainForm.cs
++++ b/Forms/MainForm.cs
+@@ -166,14 +166,12 @@ public sealed class MainForm : Form
+ 
+     private void ShowHome()
+     {
+-        var home = new PictureBox
++        if (_mainContent.Controls.Count == 1 && _mainContent.Controls[0] is FormTrangChu)
+         {
+-            Dock = DockStyle.Fill,
+-            BackColor = ClassicUi.Honeydew,
+-            Image = ClassicUi.Image("pictureIcon.png"),
+-            SizeMode = PictureBoxSizeMode.StretchImage
+-        };
+-        SetPage(home);
++            return;
++        }
++
++        SetPage(new FormTrangChu());
+     }
+ 
+     private void ShowFloorPlan() => SetPage(new FloorPlanControl());
+diff --git a/Forms/RoomListControl.cs b/Forms/RoomListControl.cs
+index 1f47b6a..9054f9a 100644
+--- a/Forms/RoomListControl.cs
++++ b/Forms/RoomListControl.cs
+@@ -9,6 +9,8 @@ public sealed class RoomListControl : UserControl
+ {
+     private readonly DataGridView _grid = ClassicUi.Grid();
+     private readonly TextBox _search = new();
++    private readonly System.Windows.Forms.Timer _searchTimer = new() { Interval = 300 };
++    private int _loadVersion;
+ 
+     public RoomListControl()
+     {
+@@ -46,8 +48,18 @@ public sealed class RoomListControl : UserControl
+         _grid.RowTemplate.Height = 40;
+         ConfigureGrid();
+         _grid.DataBindingComplete += (_, _) => SetRowIcons();
+-        _search.TextChanged += async (_, _) => await LoadRoomsAsync();
+-        _grid.CellContentClick += Grid_CellContentClick;
++        _search.TextChanged += (_, _) =>
++        {
++            _searchTimer.Stop();
++            _searchTimer.Start();
++        };
++        _searchTimer.Tick += async (_, _) =>
++        {
++            _searchTimer.Stop();
++            await LoadRoomsAsync();
++        };
++        Disposed += (_, _) => _searchTimer.Dispose();
++        _grid.CellClick += Grid_CellClick;
+         Load += async (_, _) => await LoadRoomsAsync();
+ 
+         Controls.Add(_grid);
+@@ -89,6 +101,7 @@ public sealed class RoomListControl : UserControl
+             return;
+         }
+ 
++        int version = ++_loadVersion;
+         try
+         {
+             string keyword = _search.Text.Trim();
+@@ -110,10 +123,21 @@ public sealed class RoomListControl : UserControl
+                     GhiChu = p.GhiChu ?? string.Empty
+                 })
+                 .ToListAsync();
++            // Bỏ kết quả cũ nếu đã có lần tải mới hơn hoặc control đã bị đóng
++            if (IsDisposed || version != _loadVersion)
++            {
++                return;
++            }
++
+             _grid.DataSource = rooms;
+         }
+         catch (Exception ex)
+         {
++            if (IsDisposed || version != _loadVersion)
++            {
++                return;
++            }
++
+             MessageBox.Show("Lỗi tải danh sách phòng: " + ex.GetBaseException().Message,
+                 "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+         }
+@@ -128,7 +152,7 @@ public sealed class RoomListControl : UserControl
+         }
+     }
+ 
+-    private async void Grid_CellContentClick(object? sender, DataGridViewCellEventArgs e)
++    private async void Grid_CellClick(object? sender, DataGridViewCellEventArgs e)
+     {
+         if (e.RowIndex < 0 || e.ColumnIndex < 0)
+         {
+diff --git a/Forms/RoomTypeControl.cs b/Forms/RoomTypeControl.cs
+index 26af022..bb81910 100644
+--- a/Forms/RoomTypeControl.cs
++++ b/Forms/RoomTypeControl.cs
+@@ -9,6 +9,8 @@ public sealed class RoomTypeControl : UserControl
+ {
+     private readonly DataGridView _grid = ClassicUi.Grid();
+     private readonly TextBox _search = new();
++    private readonly System.Windows.Forms.Timer _searchTimer = new() { Interval = 300 };
++    private int _loadVersion;
+ 
+     public RoomTypeControl()
+     {
+@@ -46,8 +48,18 @@ public sealed class RoomTypeControl : UserControl
+         _grid.RowTemplate.Height = 40;
+         ConfigureGrid();
+         _grid.DataBindingComplete += (_, _) => SetRowIcons();
+-        _search.TextChanged += async (_, _) => await LoadRoomTypesAsync();
+-        _grid.CellContentClick += Grid_CellContentClick;
++        _search.TextChanged += (_, _) =>
++        {
++            _searchTimer.Stop();
++            _searchTimer.Start();
++        };
++        _searchTimer.Tick += async (_, _) =>
++        {
++            _searchTimer.Stop();
++            await LoadRoomTypesAsync();
++        };
++        Disposed += (_, _) => _searchTimer.Dispose();
++        _grid.CellClick += Grid_CellClick;
+         Load += async (_, _) => await LoadRoomTypesAsync();
+ 
+         Controls.Add(_grid);
+@@ -94,6 +106,7 @@ public sealed class RoomTypeControl : UserControl
+             return;
+         }
+ 
++        int version = ++_loadVersion;
+         try
+         {
+             string keyword = _search.Text.Trim();
+@@ -104,7 +117,7 @@ public sealed class RoomTypeControl : UserControl
+                 query = query.Where(x => x.MaLph.Contains(keyword) || (x.TenLph != null && x.TenLph.Contains(keyword)));
+             }
+ 
+-            _grid.DataSource = await query
++            var rows = await query
+                 .OrderBy(x => x.MaLph)
+                 .Select(x => new RoomTypeRow
+                 {
+@@ -116,9 +129,21 @@ public sealed class RoomTypeControl : UserControl
+                     GiaGio = x.GiaGio
+                 })
+                 .ToListAsync();
++            // Bỏ kết quả cũ nếu đã có lần tải mới hơn hoặc control đã bị đóng
++            if (IsDisposed || version != _loadVersion)
++            {
++                return;
++            }
++
++            _grid.DataSource = rows;
+         }
+         catch (Exception ex)
+         {
++            if (IsDisposed || version != _loadVersion)
++            {
++                return;
++            }
++
+             MessageBox.Show("Lỗi khi tải loại phòng: " + ex.GetBaseException().Message,
+                 "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+         }
+@@ -133,7 +158,7 @@ public sealed class RoomTypeControl : UserControl
+         }
+     }
+ 
+-    private async void Grid_CellContentClick(object? sender, DataGridViewCellEventArgs e)
++    private async void Grid_CellClick(object? sender, DataGridViewCellEventArgs e)
+     {
+         if (e.RowIndex < 0 || e.ColumnIndex < 0)
+         {
+diff --git a/UI/AppImages.cs b/UI/AppImages.cs
+new file mode 100644
+index 0000000..b13eca3
+--- /dev/null
++++ b/UI/AppImages.cs
+@@ -0,0 +1,22 @@
++using System.Collections.Concurrent;
++
++namespace _6551071068_MAP_APP.UI;
++
++internal static class AppImages
++{
++    // Mỗi ảnh chỉ nạp một lần và dùng chung toàn ứng dụng; không Dispose ảnh lấy từ đây.
++    private static readonly ConcurrentDictionary<string, Image?> Cache = new(StringComparer.OrdinalIgnoreCase);
++
++    public static Image? Load(string fileName)
++        => Cache.GetOrAdd(fileName, static name =>
++        {
++            string path = Path.Combine(AppContext.BaseDirectory, "Resources", name);
++            if (!File.Exists(path))
++            {
++                return null;
++            }
++
++            using Image source = Image.FromFile(path);
++            return new Bitmap(source);
++        });
++}
+diff --git a/UI/UiTheme.cs b/UI/UiTheme.cs
+deleted file mode 100644
+index 8b58e2f..0000000
+--- a/UI/UiTheme.cs
++++ /dev/null
+@@ -1,150 +0,0 @@
+-using System.Drawing.Drawing2D;
+-
+-namespace _6551071068_MAP_APP.UI;
+-
+-internal static class UiTheme
+-{
+-    public static readonly Color Ink = Color.FromArgb(29, 41, 57);
+-    public static readonly Color Muted = Color.FromArgb(104, 119, 139);
+-    public static readonly Color Navy = Color.FromArgb(22, 46, 74);
+-    public static readonly Color Teal = Color.FromArgb(0, 136, 145);
+-    public static readonly Color TealDark = Color.FromArgb(0, 105, 112);
+-    public static readonly Color Canvas = Color.FromArgb(244, 247, 250);
+-    public static readonly Color Border = Color.FromArgb(224, 231, 238);
+-    public static readonly Color White = Color.White;
+-
+-    public static Label Label(string text, float size = 10, bool bold = false, Color? color = null)
+-        => new()
+-        {
+-            AutoSize = true,
+-            Text = text,
+-            ForeColor = color ?? Ink,
+-            Font = new Font("Segoe UI", size, bold ? FontStyle.Bold : FontStyle.Regular),
+-            Margin = new Padding(0, 5, 8, 5)
+-        };
+-
+-    public static Button Button(string text, bool primary = false)
+-    {
+-        var button = new Button
+-        {
+-            Text = text,
+-            AutoSize = true,
+-            MinimumSize = new Size(110, 40),
+-            Padding = new Padding(12, 5, 12, 5),
+-            FlatStyle = FlatStyle.Flat,
+-            BackColor = primary ? Teal : White,
+-            ForeColor = primary ? White : Ink,
+-            Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+-            Cursor = Cursors.Hand,
+-            Margin = new Padding(4)
+-        };
+-        button.FlatAppearance.BorderColor = primary ? Teal : Border;
+-        button.FlatAppearance.MouseOverBackColor = primary ? TealDark : Color.FromArgb(239, 244, 248);
+-        return button;
+-    }
+-
+-    public static TextBox TextBox(bool password = false)
+-        => new()
+-        {
+-            BorderStyle = BorderStyle.FixedSingle,
+-            Font = new Font("Segoe UI", 11f),
+-            Height = 36,
+-            UseSystemPasswordChar = password,
+-            Margin = new Padding(0, 4, 0, 12),
+-            Dock = DockStyle.Top
+-        };
+-
+-    public static ComboBox ComboBox()
+-        => new()
+-        {
+-            DropDownStyle = ComboBoxStyle.DropDownList,
+-            Font = new Font("Segoe UI", 10f),
+-            Height = 34,
+-            Margin = new Padding(0, 4, 0, 10),
+-            Dock = DockStyle.Top
+-        };
+-
+-    public static DataGridView Grid()
+-        => new()
+-        {
+-            Dock = DockStyle.Fill,
+-            AutoGenerateColumns = false,
+-            BackgroundColor = White,
+-            BorderStyle = BorderStyle.None,
+-            GridColor = Border,
+-            RowHeadersVisible = false,
+-            AllowUserToAddRows = false,
+-            AllowUserToDeleteRows = false,
+-            AllowUserToResizeRows = false,
+-            ReadOnly = true,
+-            MultiSelect = false,
+-            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+-            RowTemplate = { Height = 42 },
+-            ColumnHeadersHeight = 44,
+-            EnableHeadersVisualStyles = false,
+-            ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
+-            {
+-                BackColor = Color.FromArgb(238, 243, 247),
+-                ForeColor = Ink,
+-                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
+-                SelectionBackColor = Color.FromArgb(238, 243, 247),
+-                SelectionForeColor = Ink,
+-                Padding = new Padding(6)
+-            },
+-            DefaultCellStyle = new DataGridViewCellStyle
+-            {
+-                Font = new Font("Segoe UI", 9.5f),
+-                ForeColor = Ink,
+-                BackColor = White,
+-                SelectionBackColor = Color.FromArgb(222, 240, 241),
+-                SelectionForeColor = Ink,
+-                Padding = new Padding(6)
+-            },
+-            AlternatingRowsDefaultCellStyle = new DataGridViewCellStyle
+-            {
+-                BackColor = Color.FromArgb(249, 251, 253)
+-            }
+-        };
+-
+-    public static Panel Card()
+-        => new()
+-        {
+-            BackColor = White,
+-            Padding = new Padding(18),
+-            Margin = new Padding(0),
+-            BorderStyle = BorderStyle.FixedSingle
+-        };
+-
+-    public static void Round(Control control, int radius = 10)
+-    {
+-        if (control.Width <= 0 || control.Height <= 0)
+-        {
+-            return;
+-        }
+-
+-        using var path = new GraphicsPath();
+-        int diameter = radius * 2;
+-        path.AddArc(0, 0, diameter, diameter, 180, 90);
+-        path.AddArc(control.Width - diameter - 1, 0, diameter, diameter, 270, 90);
+-        path.AddArc(control.Width - diameter - 1, control.Height - diameter - 1, diameter, diameter, 0, 90);
+-        path.AddArc(0, control.Height - diameter - 1, diameter, diameter, 90, 90);
+-        path.CloseFigure();
+-        control.Region = new Region(path);
+-    }
+-}
+-
+-internal static class AppImages
+-{
+-    public static Image? Load(string fileName)
+-    {
+-        string path = Path.Combine(AppContext.BaseDirectory, "Resources", fileName);
+-        if (!File.Exists(path))
+-        {
+-            return null;
+-        }
+-
+-        using Image source = Image.FromFile(path);
+-        return new Bitmap(source);
+-    }
+-}

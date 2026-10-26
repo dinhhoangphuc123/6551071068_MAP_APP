@@ -166,14 +166,12 @@ public sealed class MainForm : Form
 
     private void ShowHome()
     {
-        var home = new PictureBox
+        if (_mainContent.Controls.Count == 1 && _mainContent.Controls[0] is FormTrangChu)
         {
-            Dock = DockStyle.Fill,
-            BackColor = ClassicUi.Honeydew,
-            Image = ClassicUi.Image("pictureIcon.png"),
-            SizeMode = PictureBoxSizeMode.StretchImage
-        };
-        SetPage(home);
+            return;
+        }
+
+        SetPage(new FormTrangChu());
     }
 
     private void ShowFloorPlan() => SetPage(new FloorPlanControl());
