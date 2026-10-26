@@ -2,171 +2,138 @@ using _6551071068_MAP_APP.UI;
 
 namespace _6551071068_MAP_APP.Forms;
 
-public sealed class MainForm : Form
+public sealed partial class MainForm : Form
 {
-    private readonly Panel _mainContent = new()
-    {
-        BackColor = ClassicUi.Honeydew,
-        Location = new Point(312, 105),
-        Size = new Size(1647, 1349),
-        AutoScroll = true
-    };
-    private readonly Label _userLabel = new()
-    {
-        AutoSize = false,
-        Location = new Point(8, 155),
-        Size = new Size(288, 28),
-        TextAlign = ContentAlignment.MiddleCenter,
-        ForeColor = Color.Black,
-        Font = new Font("Microsoft Sans Serif", 13f, FontStyle.Bold)
-    };
-
     public MainForm()
     {
-        Text = "Hotel Management";
-        StartPosition = FormStartPosition.CenterScreen;
-        WindowState = FormWindowState.Maximized;
-        AutoScroll = true;
-        AutoScrollMinSize = new Size(1834, 1450);
-        BackColor = Color.White;
-        Font = new Font("Microsoft Sans Serif", 10f);
-
-        Controls.Add(BuildHeader());
-        Controls.Add(BuildProfile());
-        Controls.Add(BuildNavigation());
-        Controls.Add(_mainContent);
+        InitializeComponent();
+        ConfigureResponsiveLayout();
+        lblUser.Text = LoginForm.TenNvDangNhap;
         ShowHome();
     }
 
-    private Control BuildHeader()
+    private void ConfigureResponsiveLayout()
     {
-        var header = new Panel
-        {
-            BackColor = ClassicUi.SeaGreen,
-            Location = new Point(0, 4),
-            Size = new Size(1834, 92)
-        };
-        var logo = new PictureBox
-        {
-            Image = ClassicUi.Image("Menu.png"),
-            Location = new Point(3, 4),
-            Size = new Size(48, 78),
-            SizeMode = PictureBoxSizeMode.StretchImage
-        };
-        header.Controls.Add(logo);
-        header.Controls.Add(new Label
-        {
-            Text = "Hotel Management",
-            AutoSize = true,
-            Location = new Point(66, 19),
-            ForeColor = Color.LightSalmon,
-            Font = new Font("Segoe UI Semibold", 18f, FontStyle.Bold)
-        });
-        return header;
+        AutoScroll = false;
+        pnlHeader.Dock = DockStyle.Top;
+        pnlSidebar.Dock = DockStyle.Left;
+        pnlProfile.Dock = DockStyle.Top;
+        pnlNav.Dock = DockStyle.Fill;
+        pnlMainContent.Dock = DockStyle.Fill;
+        pnlMainContent.AutoScroll = false;
+
+        Resize += (_, _) => LayoutResponsiveShell();
+        pnlNav.Resize += (_, _) => LayoutNavigation();
+        pnlProfile.Resize += (_, _) => LayoutProfile();
+        LayoutResponsiveShell();
     }
 
-    private Control BuildProfile()
+    private void LayoutResponsiveShell()
     {
-        var profile = new Panel
-        {
-            BackColor = ClassicUi.MediumSeaGreen,
-            Location = new Point(0, 94),
-            Size = new Size(304, 198)
-        };
-        var logout = new LinkLabel
-        {
-            Text = "Đăng xuất",
-            AutoSize = true,
-            Location = new Point(4, 11),
-            LinkColor = Color.MidnightBlue,
-            ActiveLinkColor = Color.DarkBlue,
-            Font = new Font("Microsoft Sans Serif", 13f)
-        };
-        logout.Click += Logout_Click;
-        profile.Controls.Add(logout);
-        profile.Controls.Add(new PictureBox
-        {
-            Image = ClassicUi.Image("user.png"),
-            Location = new Point(101, 48),
-            Size = new Size(87, 108),
-            SizeMode = PictureBoxSizeMode.StretchImage
-        });
-        _userLabel.Text = LoginForm.TenNvDangNhap;
-        profile.Controls.Add(_userLabel);
-        return profile;
+        int clientWidth = Math.Max(1, ClientSize.Width);
+        int clientHeight = Math.Max(1, ClientSize.Height);
+        int headerHeight = Math.Clamp((int)(clientHeight * 0.102), 52, 74);
+        int profileHeight = Math.Clamp((int)(clientHeight * 0.195), 100, 142);
+
+        pnlHeader.Height = headerHeight;
+        pnlSidebar.Width = Math.Clamp((int)(clientWidth * 0.18), 170, 235);
+        pnlProfile.Height = profileHeight;
+
+        int logoHeight = Math.Max(36, headerHeight - 10);
+        int logoWidth = Math.Max(26, (int)(logoHeight * 0.62));
+        picLogo.SetBounds(4, (headerHeight - logoHeight) / 2, logoWidth, logoHeight);
+        lblTitle.Location = new Point(logoWidth + 14, Math.Max(4, (headerHeight - lblTitle.Height) / 2));
+        lblTitle.Font = new Font("Segoe UI Semibold", Math.Clamp(headerHeight * 0.22f, 12f, 16f), FontStyle.Bold);
+
+        linkDangXuat.Location = new Point(6, 5);
+        linkDangXuat.Font = new Font("Microsoft Sans Serif", Math.Clamp(headerHeight * 0.14f, 8.5f, 10f));
+        LayoutProfile();
+        LayoutNavigation();
     }
 
-    private Control BuildNavigation()
+    private void LayoutProfile()
     {
-        var navigation = new Panel
+        int profileHeight = pnlProfile.ClientSize.Height;
+        if (profileHeight <= 0)
         {
-            BackColor = ClassicUi.DarkCyan,
-            Location = new Point(0, 289),
-            Size = new Size(304, 1161)
-        };
-        var entries = new (string Text, string Icon, Action Open)[]
-        {
-            ("Trang chủ", "MenuTrangChu.png", ShowHome),
-            ("Sơ đồ phòng", "MenuSoDoPhong.png", ShowFloorPlan),
-            ("Phòng", "MenuPhong.png", ShowRoomList),
-            ("Loại phòng", "MenuLoaiPhong.png", ShowRoomTypes),
-            ("Danh sách đặt phòng", "MenuDatPhong.png", () => ShowPlaceholder("Danh sách đặt phòng")),
-            ("Danh sách hóa đơn", "MenuDanhSachHoaDon.png", () => ShowPlaceholder("Danh sách hóa đơn")),
-            ("Danh sách dịch vụ", "MenuQuanLyDichVu.png", () => ShowPlaceholder("Danh sách dịch vụ")),
-            ("Danh sách tiện nghi", "MenuTienNghi.png", () => ShowPlaceholder("Danh sách tiện nghi")),
-            ("Danh sách khách hàng", "MenuQuanLyKhachHang.png", () => ShowPlaceholder("Danh sách khách hàng")),
-            ("Danh sách nhân viên", "MenuQuanLyNhanVien.png", () => ShowPlaceholder("Danh sách nhân viên")),
-            ("Danh sách tài khoản", "MenuQuanLyTaiKhoan.png", () => ShowPlaceholder("Danh sách tài khoản")),
-            ("Thống kê", "MenuThongKe.png", () => ShowPlaceholder("Thống kê"))
-        };
-
-        int y = 0;
-        foreach (var entry in entries)
-        {
-            int height = y == 0 ? 69 : 58;
-            var button = new Button
-            {
-                Text = entry.Text,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Image = ClassicUi.Image(entry.Icon),
-                ImageAlign = ContentAlignment.MiddleLeft,
-                TextImageRelation = TextImageRelation.Overlay,
-                Location = new Point(0, y),
-                Size = new Size(304, height),
-                BackColor = ClassicUi.DarkCyan,
-                ForeColor = Color.White,
-                Font = new Font("Microsoft Sans Serif", 13f),
-                FlatStyle = FlatStyle.Flat,
-                UseVisualStyleBackColor = false,
-                Padding = new Padding(15, 0, 4, 0),
-                Cursor = Cursors.Hand
-            };
-            button.FlatAppearance.BorderColor = Color.White;
-            button.FlatAppearance.BorderSize = 1;
-            button.Click += (_, _) => entry.Open();
-            navigation.Controls.Add(button);
-            y += height;
+            return;
         }
 
-        return navigation;
+        int imageHeight = Math.Clamp(profileHeight - 48, 48, 78);
+        int imageWidth = Math.Max(38, (int)(imageHeight * 0.81));
+        picUser.SetBounds((pnlProfile.ClientSize.Width - imageWidth) / 2, 21, imageWidth, imageHeight);
+        int labelTop = Math.Max(68, profileHeight - 27);
+        lblUser.SetBounds(5, labelTop, Math.Max(0, pnlProfile.ClientSize.Width - 10), 24);
+        lblUser.Font = new Font("Microsoft Sans Serif", Math.Clamp(profileHeight * 0.071f, 8f, 10f), FontStyle.Bold);
     }
+
+    private void LayoutNavigation()
+    {
+        Button[] buttons =
+        [
+            btnTrangChu, btnSoDoPhong, btnPhong, btnLoaiPhong,
+            btnDanhSachDatPhong, btnDanhSachHoaDon, btnDanhSachDichVu,
+            btnDanhSachTienNghi, btnDanhSachKhachHang, btnDanhSachNhanVien,
+            btnDanhSachTaiKhoan, btnThongKe
+        ];
+        if (pnlNav.ClientSize.Height <= 0 || pnlNav.ClientSize.Width <= 0)
+        {
+            return;
+        }
+
+        int rowHeight = Math.Max(1, pnlNav.ClientSize.Height / buttons.Length);
+        float baseFontSize = Math.Clamp(rowHeight * 0.25f, 7f, 11.5f);
+        for (int index = 0; index < buttons.Length; index++)
+        {
+            buttons[index].SetBounds(0, index * rowHeight, pnlNav.ClientSize.Width,
+                index == buttons.Length - 1 ? pnlNav.ClientSize.Height - index * rowHeight : rowHeight);
+            buttons[index].TextAlign = ContentAlignment.MiddleLeft;
+            buttons[index].ImageAlign = ContentAlignment.MiddleLeft;
+            buttons[index].TextImageRelation = TextImageRelation.ImageBeforeText;
+            buttons[index].Padding = new Padding(10, 0, 4, 0);
+
+            int iconWidth = buttons[index].Image?.Width ?? 28;
+            int textWidth = Math.Max(40, pnlNav.ClientSize.Width - buttons[index].Padding.Horizontal - iconWidth - 8);
+            float fontSize = baseFontSize;
+            while (fontSize > 7f)
+            {
+                using var measureFont = new Font("Microsoft Sans Serif", fontSize);
+                if (TextRenderer.MeasureText(buttons[index].Text, measureFont, Size.Empty,
+                        TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width <= textWidth)
+                {
+                    break;
+                }
+
+                fontSize -= 0.5f;
+            }
+            buttons[index].Font = new Font("Microsoft Sans Serif", fontSize);
+        }
+    }
+
+    private void BtnTrangChu_Click(object? sender, EventArgs e) => ShowHome();
+    private void BtnSoDoPhong_Click(object? sender, EventArgs e) => ShowFloorPlan();
+    private void BtnPhong_Click(object? sender, EventArgs e) => ShowRoomList();
+    private void BtnLoaiPhong_Click(object? sender, EventArgs e) => ShowRoomTypes();
+
+    // Các mục menu chưa làm: tiêu đề trang chính là chữ trên nút
+    private void NavPlaceholder_Click(object? sender, EventArgs e) => ShowPlaceholder(((Button)sender!).Text);
 
     private void SetPage(Control page)
     {
-        foreach (Control control in _mainContent.Controls.Cast<Control>().ToList())
+        foreach (Control control in pnlMainContent.Controls.Cast<Control>().ToList())
         {
-            _mainContent.Controls.Remove(control);
+            pnlMainContent.Controls.Remove(control);
             control.Dispose();
         }
 
         page.Dock = DockStyle.Fill;
-        _mainContent.Controls.Add(page);
+        pnlMainContent.Controls.Add(page);
         page.BringToFront();
     }
 
     private void ShowHome()
     {
-        if (_mainContent.Controls.Count == 1 && _mainContent.Controls[0] is FormTrangChu)
+        if (pnlMainContent.Controls.Count == 1 && pnlMainContent.Controls[0] is FormTrangChu)
         {
             return;
         }
@@ -204,7 +171,7 @@ public sealed class MainForm : Form
         using var login = new LoginForm();
         if (login.ShowDialog() == DialogResult.OK)
         {
-            _userLabel.Text = LoginForm.TenNvDangNhap;
+            lblUser.Text = LoginForm.TenNvDangNhap;
             ShowHome();
             Show();
             Activate();

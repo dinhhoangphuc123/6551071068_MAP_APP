@@ -1,244 +1,122 @@
 using _6551071068_MAP_APP.Data;
-using _6551071068_MAP_APP.UI;
 using Microsoft.EntityFrameworkCore;
 
 namespace _6551071068_MAP_APP.Forms;
 
 /// <summary>Room filters and the room status table shown in the lab manual.</summary>
-public sealed class FloorPlanControl : UserControl
+public sealed partial class FloorPlanControl : UserControl
 {
-    private readonly TextBox _search = new();
-    // Tick checkbox mới lọc "phòng còn trống theo ngày", bỏ tick thì xem tất cả
-    private readonly DateTimePicker _date = new()
-    {
-        Format = DateTimePickerFormat.Short,
-        ShowCheckBox = true,
-        Checked = false
-    };
-    private readonly DateTimePicker _time = new()
-    {
-        Format = DateTimePickerFormat.Time,
-        ShowUpDown = true
-    };
-    private readonly DataGridView _grid = ClassicUi.Grid();
-    private readonly RadioButton _allStatus = Radio("Tất cả phòng");
-    private readonly RadioButton _normal = Radio("Phòng trống");
-    private readonly RadioButton _booked = Radio("Phòng đã đặt");
-    private readonly RadioButton _occupied = Radio("Phòng đang thuê");
-    private readonly RadioButton _repair = Radio("Phòng đang sửa chữa");
-    private readonly RadioButton _allTypes = Radio("Tất cả phòng");
-    private readonly RadioButton _standardSingle = Radio("Phòng thường đơn");
-    private readonly RadioButton _standardDouble = Radio("Phòng thường đôi");
-    private readonly RadioButton _vipSingle = Radio("Phòng VIP đơn");
-    private readonly RadioButton _vipDouble = Radio("Phòng VIP đôi");
-    private readonly RadioButton _allCleaning = Radio("Tất cả");
-    private readonly RadioButton _clean = Radio("Đã dọn dẹp");
-    private readonly RadioButton _notClean = Radio("Chưa dọn dẹp");
-    private readonly System.Windows.Forms.Timer _searchTimer = new() { Interval = 300 };
     private bool _loading;
 
     public FloorPlanControl()
     {
+        InitializeComponent();
         Dock = DockStyle.Fill;
-        BackColor = ClassicUi.Honeydew;
-        Size = new Size(1276, 851);
-        MinimumSize = new Size(1276, 851);
+        Resize += (_, _) => LayoutForViewport();
+        LayoutForViewport();
+    }
 
-        Controls.Add(BuildFilters());
-        Controls.Add(BuildToolbar());
+    private async void FloorPlanControl_Load(object? sender, EventArgs e)
+    {
+        LayoutForViewport();
+        await LoadRoomsAsync();
+    }
 
-        _grid.Location = new Point(274, 74);
-        _grid.Size = new Size(990, 713);
-        _grid.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-        _grid.RowTemplate.Height = 24;
-        _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        ConfigureGrid();
-        Controls.Add(_grid);
-
-        _search.TextChanged += (_, _) => ScheduleReload();
-        _date.ValueChanged += (_, _) => ScheduleReload();
-        foreach (RadioButton radio in FilterRadios())
+    private void LayoutForViewport()
+    {
+        int width = ClientSize.Width;
+        int height = ClientSize.Height;
+        if (width <= 0 || height <= 0)
         {
-            radio.CheckedChanged += (_, _) =>
-            {
-                if (radio.Checked) ScheduleReload();
-            };
+            return;
         }
 
-        _searchTimer.Tick += async (_, _) =>
-        {
-            _searchTimer.Stop();
-            await LoadRoomsAsync();
-        };
-        _searchTimer.Stop();
-        Disposed += (_, _) => _searchTimer.Dispose();
-        Load += async (_, _) => await LoadRoomsAsync();
+        const int toolbarHeight = 74;
+        int filterWidth = Math.Clamp((int)(width * 0.23), 165, 267);
+        int tableWidth = Math.Max(0, width - filterWidth);
+        pnlFilters.SetBounds(0, 0, filterWidth, height);
+        pnlToolbar.SetBounds(filterWidth, 0, tableWidth, toolbarHeight);
+        dgvRooms.SetBounds(filterWidth, toolbarHeight, tableWidth, Math.Max(0, height - toolbarHeight));
+
+        int gap = 4;
+        int groupSpace = Math.Max(0, height - gap * 2);
+        int statusHeight = (int)(groupSpace * 0.36);
+        int typeHeight = (int)(groupSpace * 0.36);
+        int cleaningHeight = groupSpace - statusHeight - typeHeight;
+        grpStatus.SetBounds(3, 0, Math.Max(0, filterWidth - 6), statusHeight);
+        grpType.SetBounds(3, statusHeight + gap, Math.Max(0, filterWidth - 6), typeHeight);
+        grpCleaning.SetBounds(3, statusHeight + typeHeight + gap * 2, Math.Max(0, filterWidth - 6), cleaningHeight);
+
+        float titleFont = Math.Clamp(filterWidth / 20f, 9f, 12f);
+        LayoutFilterGroup(lblStatusTitle, [rdoNormal, rdoBooked, rdoOccupied, rdoRepair, rdoAllStatus], grpStatus, titleFont);
+        LayoutFilterGroup(lblTypeTitle, [rdoStandardSingle, rdoStandardDouble, rdoVipSingle, rdoVipDouble, rdoAllTypes], grpType, titleFont);
+        LayoutFilterGroup(lblCleaningTitle, [rdoClean, rdoNotClean, rdoAllCleaning], grpCleaning, titleFont);
+
+        LayoutToolbar(tableWidth);
     }
 
-    private Control BuildFilters()
+    private static void LayoutFilterGroup(Label title, RadioButton[] radios, Panel panel, float titleFont)
     {
-        var filters = new Panel
-        {
-            Location = new Point(0, 0),
-            Size = new Size(267, 788),
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left,
-            BackColor = ClassicUi.GreenYellow
-        };
-        AddFilterGroup(filters, "Trạng thái phòng", new Point(3, 0), new Size(255, 279),
-            new (RadioButton Radio, int Y)[]
-            {
-                (_normal, 61), (_booked, 105), (_occupied, 149), (_repair, 192), (_allStatus, 236)
-            });
-        AddFilterGroup(filters, "Loại phòng", new Point(6, 298), new Size(255, 279),
-            new (RadioButton Radio, int Y)[]
-            {
-                (_standardSingle, 61), (_standardDouble, 105), (_vipSingle, 149), (_vipDouble, 192), (_allTypes, 236)
-            });
-        AddFilterGroup(filters, "Tình trạng dọn dẹp", new Point(12, 595), new Size(246, 188),
-            new (RadioButton Radio, int Y)[]
-            {
-                (_clean, 61), (_notClean, 105), (_allCleaning, 149)
-            });
+        title.SetBounds(12, 5, Math.Max(0, panel.ClientSize.Width - 24), 25);
+        title.Font = new Font("Segoe UI", titleFont, FontStyle.Bold);
 
-        _allStatus.Checked = true;
-        _allTypes.Checked = true;
-        _allCleaning.Checked = true;
-        return filters;
-    }
-
-    private static void AddFilterGroup(Panel parent, string title, Point location, Size size,
-        IEnumerable<(RadioButton Radio, int Y)> radios)
-    {
-        var panel = new Panel
+        int rowHeight = Math.Max(20, (panel.ClientSize.Height - 38) / radios.Length);
+        float radioFont = Math.Clamp(rowHeight * 0.34f, 8f, 10.5f);
+        for (int index = 0; index < radios.Length; index++)
         {
-            Location = location,
-            Size = size,
-            BackColor = ClassicUi.GreenYellow,
-            BorderStyle = BorderStyle.FixedSingle
-        };
-        panel.Controls.Add(new Label
-        {
-            Text = title,
-            Location = new Point(18, 9),
-            Size = new Size(size.Width - 30, 31),
-            Font = new Font("Segoe UI", 14.25f, FontStyle.Bold),
-            ForeColor = Color.Black
-        });
-        foreach (var (radio, y) in radios)
-        {
-            radio.Location = new Point(15, y);
-            panel.Controls.Add(radio);
+            radios[index].Location = new Point(10, 32 + index * rowHeight);
+            radios[index].Font = new Font("Microsoft Sans Serif", radioFont);
         }
-
-        parent.Controls.Add(panel);
     }
 
-    private Control BuildToolbar()
+    private void LayoutToolbar(int width)
     {
-        var toolbar = new Panel
-        {
-            Location = new Point(274, 0),
-            Size = new Size(990, 74),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-            BackColor = ClassicUi.Honeydew
-        };
-        toolbar.Controls.Add(new Label
-        {
-            Text = "Chọn ngày",
-            Location = new Point(27, 1),
-            Size = new Size(200, 20),
-            TextAlign = ContentAlignment.MiddleCenter,
-            Font = new Font("Microsoft Sans Serif", 9f)
-        });
-        _date.Location = new Point(27, 28);
-        _date.Size = new Size(200, 27);
-        toolbar.Controls.Add(_date);
-        toolbar.Controls.Add(new Label
-        {
-            Text = "Chọn giờ",
-            Location = new Point(265, 1),
-            Size = new Size(200, 20),
-            TextAlign = ContentAlignment.MiddleCenter,
-            Font = new Font("Microsoft Sans Serif", 9f)
-        });
-        _time.Location = new Point(265, 28);
-        _time.Size = new Size(200, 27);
-        toolbar.Controls.Add(_time);
+        int buttonWidth = Math.Clamp((int)(width * 0.17), 100, 150);
+        int dateWidth = Math.Clamp((width - buttonWidth - 170) / 2, 95, 190);
+        int x = 8;
+        lblChonNgay.SetBounds(x, 1, dateWidth, 20);
+        dtpDate.SetBounds(x, 28, dateWidth, 27);
+        x += dateWidth + 8;
+        lblChonGio.SetBounds(x, 1, dateWidth, 20);
+        dtpTime.SetBounds(x, 28, dateWidth, 27);
+        x += dateWidth + 12;
 
-        toolbar.Controls.Add(new PictureBox
-        {
-            Image = ClassicUi.Image("search.png"),
-            Location = new Point(514, 16),
-            Size = new Size(30, 40),
-            SizeMode = PictureBoxSizeMode.Zoom
-        });
-        _search.Location = new Point(554, 21);
-        _search.Size = new Size(149, 27);
-        _search.Font = new Font("Microsoft Sans Serif", 10f);
-        toolbar.Controls.Add(_search);
-
-        var booking = new Button
-        {
-            Text = "Đặt phòng",
-            Location = new Point(757, 10),
-            Size = new Size(166, 54),
-            BackColor = Color.FromArgb(192, 192, 255),
-            ForeColor = Color.Blue,
-            Font = new Font("Microsoft Sans Serif", 15f, FontStyle.Bold),
-            UseVisualStyleBackColor = false
-        };
-        booking.Click += (_, _) =>
-        {
-            string room = _grid.CurrentRow?.Cells["MaPH"].Value?.ToString() ?? "";
-            MessageBox.Show(room.Length == 0
-                    ? "Chức năng đặt phòng đang được xây dựng."
-                    : $"Chức năng đặt phòng đang được xây dựng.\nPhòng đang chọn: {room}",
-                "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        };
-        toolbar.Controls.Add(booking);
-        return toolbar;
+        int searchIconWidth = 28;
+        picSearch.SetBounds(x, 18, searchIconWidth, 34);
+        x += searchIconWidth + 4;
+        int buttonX = Math.Max(x + 90, width - buttonWidth - 8);
+        txtSearch.SetBounds(x, 22, Math.Max(80, buttonX - x - 8), 27);
+        btnDatPhong.SetBounds(buttonX, 10, Math.Min(buttonWidth, Math.Max(0, width - buttonX - 6)), 54);
+        float actionFont = Math.Clamp(buttonWidth / 12f, 8.5f, 12f);
+        btnDatPhong.Font = new Font("Microsoft Sans Serif", actionFont, FontStyle.Bold);
     }
 
-    private static RadioButton Radio(string text)
-        => new()
-        {
-            Text = text,
-            AutoSize = true,
-            Font = new Font("Microsoft Sans Serif", 12f),
-            ForeColor = Color.Black
-        };
+    private void Filter_Changed(object? sender, EventArgs e) => ScheduleReload();
 
-    private IEnumerable<RadioButton> FilterRadios()
+    private void Radio_CheckedChanged(object? sender, EventArgs e)
     {
-        yield return _allStatus;
-        yield return _normal;
-        yield return _booked;
-        yield return _occupied;
-        yield return _repair;
-        yield return _allTypes;
-        yield return _standardSingle;
-        yield return _standardDouble;
-        yield return _vipSingle;
-        yield return _vipDouble;
-        yield return _allCleaning;
-        yield return _clean;
-        yield return _notClean;
+        if (sender is RadioButton { Checked: true }) ScheduleReload();
     }
 
-    private void ConfigureGrid()
+    private async void SearchTimer_Tick(object? sender, EventArgs e)
     {
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "MaPH", HeaderText = "Mã phòng", FillWeight = 90 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Tang", HeaderText = "Tầng", FillWeight = 70 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "TenLPH", HeaderText = "Loại phòng", FillWeight = 120 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "TTPH", HeaderText = "Trạng thái phòng", FillWeight = 130 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "TTDD", HeaderText = "Tình trạng dọn dẹp", FillWeight = 145 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "GhiChu", HeaderText = "Ghi chú", FillWeight = 110 });
+        searchTimer.Stop();
+        await LoadRoomsAsync();
+    }
+
+    private void BtnDatPhong_Click(object? sender, EventArgs e)
+    {
+        string room = dgvRooms.CurrentRow?.Cells["MaPH"].Value?.ToString() ?? "";
+        MessageBox.Show(room.Length == 0
+                ? "Chức năng đặt phòng đang được xây dựng."
+                : $"Chức năng đặt phòng đang được xây dựng.\nPhòng đang chọn: {room}",
+            "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private void ScheduleReload()
     {
-        _searchTimer.Stop();
-        _searchTimer.Start();
+        searchTimer.Stop();
+        searchTimer.Start();
     }
 
     private async Task LoadRoomsAsync()
@@ -257,33 +135,34 @@ public sealed class FloorPlanControl : UserControl
             await using var db = new HotelManagementContext();
             IQueryable<Phong> query = db.Phongs.AsNoTracking().Where(p => p.DaXoa != true);
 
-            string? status = _allStatus.Checked ? null
-                : _normal.Checked ? "Bình thường"
-                : _booked.Checked ? "Đã đặt"
-                : _occupied.Checked ? "Đang thuê"
-                : _repair.Checked ? "Đang sửa chữa"
+            string? status = rdoAllStatus.Checked ? null
+                : rdoNormal.Checked ? "Bình thường"
+                : rdoBooked.Checked ? "Đã đặt"
+                : rdoOccupied.Checked ? "Đang thuê"
+                : rdoRepair.Checked ? "Đang sửa chữa"
                 : null;
             if (status is not null) query = query.Where(p => p.Ttph == status);
 
-            string? typeCode = _allTypes.Checked ? null
-                : _standardSingle.Checked ? "NOR01"
-                : _standardDouble.Checked ? "NOR02"
-                : _vipSingle.Checked ? "VIP01"
-                : _vipDouble.Checked ? "VIP02"
+            string? typeCode = rdoAllTypes.Checked ? null
+                : rdoStandardSingle.Checked ? "NOR01"
+                : rdoStandardDouble.Checked ? "NOR02"
+                : rdoVipSingle.Checked ? "VIP01"
+                : rdoVipDouble.Checked ? "VIP02"
                 : null;
             if (typeCode is not null) query = query.Where(p => p.MaLph == typeCode);
 
-            string? cleaning = _allCleaning.Checked ? null
-                : _clean.Checked ? "Đã dọn dẹp"
-                : _notClean.Checked ? "Chưa dọn dẹp" : null;
+            string? cleaning = rdoAllCleaning.Checked ? null
+                : rdoClean.Checked ? "Đã dọn dẹp"
+                : rdoNotClean.Checked ? "Chưa dọn dẹp" : null;
             if (cleaning is not null) query = query.Where(p => p.Ttdd == cleaning);
 
-            string keyword = _search.Text.Trim();
+            string keyword = txtSearch.Text.Trim();
             if (keyword.Length > 0) query = query.Where(p => p.MaPh.Contains(keyword));
 
-            if (_date.Checked)
+            // Tick checkbox mới lọc "phòng còn trống theo ngày", bỏ tick thì xem tất cả
+            if (dtpDate.Checked)
             {
-                DateTime start = _date.Value.Date;
+                DateTime start = dtpDate.Value.Date;
                 DateTime end = start.AddDays(1);
                 query = query.Where(p => p.Ttph == "Bình thường" &&
                     !p.Ctdps.Any(c => c.DaXoa != true && c.Checkin < end && c.CheckOut > start));
@@ -302,10 +181,10 @@ public sealed class FloorPlanControl : UserControl
                 })
                 .ToListAsync();
 
-            _grid.Rows.Clear();
+            dgvRooms.Rows.Clear();
             foreach (var room in rooms)
             {
-                _grid.Rows.Add(room.MaPh, room.Tang, room.TenLph ?? "Chưa phân loại",
+                dgvRooms.Rows.Add(room.MaPh, room.Tang, room.TenLph ?? "Chưa phân loại",
                     room.Ttph ?? string.Empty, room.Ttdd ?? string.Empty, room.GhiChu ?? string.Empty);
             }
         }

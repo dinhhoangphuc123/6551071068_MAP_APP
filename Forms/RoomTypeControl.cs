@@ -1,101 +1,45 @@
 using _6551071068_MAP_APP.Data;
-using _6551071068_MAP_APP.UI;
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 
 namespace _6551071068_MAP_APP.Forms;
 
-public sealed class RoomTypeControl : UserControl
+public sealed partial class RoomTypeControl : UserControl
 {
-    private readonly DataGridView _grid = ClassicUi.Grid();
-    private readonly TextBox _search = new();
-    private readonly System.Windows.Forms.Timer _searchTimer = new() { Interval = 300 };
     private int _loadVersion;
 
     public RoomTypeControl()
     {
+        InitializeComponent();
         Dock = DockStyle.Fill;
-        BackColor = SystemColors.Control;
-        Size = new Size(948, 683);
-        MinimumSize = new Size(948, 683);
-
-        var searchIcon = new PictureBox
-        {
-            Image = ClassicUi.Image("search.png"),
-            Location = new Point(60, 12),
-            Size = new Size(39, 37),
-            SizeMode = PictureBoxSizeMode.Zoom,
-            Anchor = AnchorStyles.Top | AnchorStyles.Left
-        };
-        _search.Location = new Point(105, 17);
-        _search.Size = new Size(187, 32);
-        _search.Font = new Font("Microsoft Sans Serif", 13f);
-        _search.Anchor = AnchorStyles.Top | AnchorStyles.Left;
-
-        var exportButton = ClassicUi.ToolbarButton("Xuất file Excel", Color.DarkTurquoise, 167);
-        exportButton.Location = new Point(546, 12);
-        exportButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-        exportButton.Click += ExportExcel_Click;
-
-        var addButton = ClassicUi.ToolbarButton("Thêm mới", Color.LightPink, 167);
-        addButton.Location = new Point(747, 12);
-        addButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-        addButton.Click += async (_, _) => await AddRoomTypeAsync();
-
-        _grid.Location = new Point(-71, 66);
-        _grid.Size = new Size(1015, 615);
-        _grid.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-        _grid.RowTemplate.Height = 40;
-        ConfigureGrid();
-        _grid.DataBindingComplete += (_, _) => SetRowIcons();
-        _search.TextChanged += (_, _) =>
-        {
-            _searchTimer.Stop();
-            _searchTimer.Start();
-        };
-        _searchTimer.Tick += async (_, _) =>
-        {
-            _searchTimer.Stop();
-            await LoadRoomTypesAsync();
-        };
-        Disposed += (_, _) => _searchTimer.Dispose();
-        _grid.CellClick += Grid_CellClick;
-        Load += async (_, _) => await LoadRoomTypesAsync();
-
-        Controls.Add(_grid);
-        Controls.Add(searchIcon);
-        Controls.Add(_search);
-        Controls.Add(exportButton);
-        Controls.Add(addButton);
+        dgvRoomTypes.AutoGenerateColumns = false;
     }
 
-    private void ConfigureGrid()
+    private async void RoomTypeControl_Load(object? sender, EventArgs e) => await LoadRoomTypesAsync();
+
+    private void TxtSearch_TextChanged(object? sender, EventArgs e)
     {
-        ClassicUi.AddImageColumn(_grid, "IconLoaiPhong", "", "Giuong.png", 42, "Hình loại phòng");
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "MaLPH", DataPropertyName = nameof(RoomTypeRow.MaLPH), HeaderText = "Mã loại phòng", FillWeight = 80 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "TenLPH", DataPropertyName = nameof(RoomTypeRow.TenLPH), HeaderText = "Tên loại phòng", FillWeight = 110 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "SoGiuong", DataPropertyName = nameof(RoomTypeRow.SoGiuong), HeaderText = "Số giường", FillWeight = 70 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "SoNguoiToiDa", DataPropertyName = nameof(RoomTypeRow.SoNguoiToiDa), HeaderText = "Số người tối đa", FillWeight = 90 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "GiaNgay", DataPropertyName = nameof(RoomTypeRow.GiaNgay), HeaderText = "Giá ngày", FillWeight = 90 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "GiaGio", DataPropertyName = nameof(RoomTypeRow.GiaGio), HeaderText = "Giá giờ", FillWeight = 90 });
-        _grid.Columns["GiaNgay"]!.DefaultCellStyle.Format = "N0";
-        _grid.Columns["GiaGio"]!.DefaultCellStyle.Format = "N0";
-        _grid.Columns["GiaNgay"]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
-        _grid.Columns["GiaGio"]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
-        ClassicUi.AddImageColumn(_grid, "colTienNghi", "Tiện nghi", "details.png", 60, "Chi tiết tiện nghi");
-        ClassicUi.AddImageColumn(_grid, "colSua", "Cập nhật", "edit.png", 70, "Cập nhật loại phòng");
-        _grid.Columns["IconLoaiPhong"]!.FillWeight = 35;
-        _grid.Columns["colTienNghi"]!.FillWeight = 50;
-        _grid.Columns["colSua"]!.FillWeight = 55;
+        searchTimer.Stop();
+        searchTimer.Start();
     }
+
+    private async void SearchTimer_Tick(object? sender, EventArgs e)
+    {
+        searchTimer.Stop();
+        await LoadRoomTypesAsync();
+    }
+
+    private async void BtnAdd_Click(object? sender, EventArgs e) => await AddRoomTypeAsync();
+
+    private void DgvRoomTypes_DataBindingComplete(object? sender, DataGridViewBindingCompleteEventArgs e) => SetRowIcons();
 
     private void SetRowIcons()
     {
-        foreach (DataGridViewRow row in _grid.Rows)
+        foreach (DataGridViewRow row in dgvRoomTypes.Rows)
         {
-            row.Cells["IconLoaiPhong"].Value = ((DataGridViewImageColumn)_grid.Columns["IconLoaiPhong"]!).Image;
-            row.Cells["colTienNghi"].Value = ((DataGridViewImageColumn)_grid.Columns["colTienNghi"]!).Image;
-            row.Cells["colSua"].Value = ((DataGridViewImageColumn)_grid.Columns["colSua"]!).Image;
+            row.Cells["IconLoaiPhong"].Value = ((DataGridViewImageColumn)dgvRoomTypes.Columns["IconLoaiPhong"]!).Image;
+            row.Cells["colTienNghi"].Value = ((DataGridViewImageColumn)dgvRoomTypes.Columns["colTienNghi"]!).Image;
+            row.Cells["colSua"].Value = ((DataGridViewImageColumn)dgvRoomTypes.Columns["colSua"]!).Image;
         }
     }
 
@@ -109,7 +53,7 @@ public sealed class RoomTypeControl : UserControl
         int version = ++_loadVersion;
         try
         {
-            string keyword = _search.Text.Trim();
+            string keyword = txtSearch.Text.Trim();
             await using var db = new HotelManagementContext();
             var query = db.LoaiPhongs.AsNoTracking();
             if (keyword.Length > 0)
@@ -135,7 +79,7 @@ public sealed class RoomTypeControl : UserControl
                 return;
             }
 
-            _grid.DataSource = rows;
+            dgvRoomTypes.DataSource = rows;
         }
         catch (Exception ex)
         {
@@ -165,7 +109,7 @@ public sealed class RoomTypeControl : UserControl
             return;
         }
 
-        var row = _grid.Rows[e.RowIndex];
+        var row = dgvRoomTypes.Rows[e.RowIndex];
         string maLoaiPhong = row.Cells["MaLPH"].Value?.ToString() ?? string.Empty;
         string tenLoaiPhong = row.Cells["TenLPH"].Value?.ToString() ?? string.Empty;
         if (maLoaiPhong.Length == 0)
@@ -173,7 +117,7 @@ public sealed class RoomTypeControl : UserControl
             return;
         }
 
-        switch (_grid.Columns[e.ColumnIndex].Name)
+        switch (dgvRoomTypes.Columns[e.ColumnIndex].Name)
         {
             case "colSua":
                 using (var dialog = new RoomTypeEditorDialog(maLoaiPhong))
@@ -194,7 +138,7 @@ public sealed class RoomTypeControl : UserControl
 
     private void ExportExcel_Click(object? sender, EventArgs e)
     {
-        var rows = _grid.Rows.Cast<DataGridViewRow>().Where(r => r.Visible && !r.IsNewRow).ToList();
+        var rows = dgvRoomTypes.Rows.Cast<DataGridViewRow>().Where(r => r.Visible && !r.IsNewRow).ToList();
         if (rows.Count == 0)
         {
             MessageBox.Show("Không có dữ liệu để xuất.", "Thông báo",
