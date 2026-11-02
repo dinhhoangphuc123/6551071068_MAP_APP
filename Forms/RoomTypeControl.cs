@@ -129,9 +129,10 @@ public sealed partial class RoomTypeControl : UserControl
                 }
                 break;
             case "colTienNghi":
-                MessageBox.Show($"Quản lý chi tiết tiện nghi của loại phòng {tenLoaiPhong} ({maLoaiPhong}) " +
-                    "đang được xây dựng theo phần tiếp theo của tài liệu.", "Thông báo",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                using (var formCttn = new HotelManagement.ChiTietTienNghi.FormDanhSachChiTietTienNghi(maLoaiPhong, tenLoaiPhong))
+                {
+                    formCttn.ShowDialog(FindForm());
+                }
                 break;
         }
     }

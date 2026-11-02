@@ -104,13 +104,11 @@ public sealed partial class FloorPlanControl : UserControl
         await LoadRoomsAsync();
     }
 
-    private void BtnDatPhong_Click(object? sender, EventArgs e)
+    private async void BtnDatPhong_Click(object? sender, EventArgs e)
     {
-        string room = dgvRooms.CurrentRow?.Cells["MaPH"].Value?.ToString() ?? "";
-        MessageBox.Show(room.Length == 0
-                ? "Chức năng đặt phòng đang được xây dựng."
-                : $"Chức năng đặt phòng đang được xây dựng.\nPhòng đang chọn: {room}",
-            "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        using var formDatPhong = new HotelManagement.SoDoPhong.FormDatPhong();
+        formDatPhong.ShowDialog(FindForm());
+        await LoadRoomsAsync();
     }
 
     private void ScheduleReload()
@@ -165,7 +163,7 @@ public sealed partial class FloorPlanControl : UserControl
                 DateTime start = dtpDate.Value.Date;
                 DateTime end = start.AddDays(1);
                 query = query.Where(p => p.Ttph == "Bình thường" &&
-                    !p.Ctdps.Any(c => c.DaXoa != true && c.Checkin < end && c.CheckOut > start));
+                    !p.Ctdps.Any(c => c.DaXoa != true && c.CheckIn < end && c.CheckOut > start));
             }
 
             var rooms = await query

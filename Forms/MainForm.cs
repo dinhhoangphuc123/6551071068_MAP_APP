@@ -145,6 +145,25 @@ public sealed partial class MainForm : Form
     private void ShowRoomList() => SetPage(new RoomListControl());
     private void ShowRoomTypes() => SetPage(new RoomTypeControl());
 
+    private void ShowHostedForm(Form form)
+    {
+        form.TopLevel = false;
+        form.FormBorderStyle = FormBorderStyle.None;
+        form.Dock = DockStyle.Fill;
+        SetPage(form);
+        form.Show();
+    }
+
+    private void BtnDanhSachDichVu_Click(object? sender, EventArgs e) => ShowHostedForm(new HotelManagement.DichVu.FormDanhSachDichVu());
+    private void BtnDanhSachTienNghi_Click(object? sender, EventArgs e) => ShowHostedForm(new HotelManagement.TienNghi.FormDanhSachTienNghi());
+    private void BtnDanhSachKhachHang_Click(object? sender, EventArgs e) => ShowHostedForm(new HotelManagement.KhachHang.FormDanhSachKhachHang());
+    private void BtnDanhSachNhanVien_Click(object? sender, EventArgs e) => ShowHostedForm(new HotelManagement.NhanVien.FormDanhSachNhanVien());
+    private void BtnDanhSachDatPhong_Click(object? sender, EventArgs e)
+    {
+        using var form = new HotelManagement.SoDoPhong.FormDatPhong();
+        form.ShowDialog(this);
+    }
+
     private void ShowPlaceholder(string title)
     {
         var label = new Label

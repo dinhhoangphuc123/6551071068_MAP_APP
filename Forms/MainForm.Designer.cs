@@ -232,7 +232,7 @@ namespace _6551071068_MAP_APP.Forms
             this.btnDanhSachDatPhong.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.btnDanhSachDatPhong.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.btnDanhSachDatPhong.UseVisualStyleBackColor = false;
-            this.btnDanhSachDatPhong.Click += new System.EventHandler(this.NavPlaceholder_Click);
+            this.btnDanhSachDatPhong.Click += new System.EventHandler(this.BtnDanhSachDatPhong_Click);
             //
             // btnDanhSachHoaDon
             //
@@ -272,7 +272,7 @@ namespace _6551071068_MAP_APP.Forms
             this.btnDanhSachDichVu.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.btnDanhSachDichVu.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.btnDanhSachDichVu.UseVisualStyleBackColor = false;
-            this.btnDanhSachDichVu.Click += new System.EventHandler(this.NavPlaceholder_Click);
+            this.btnDanhSachDichVu.Click += new System.EventHandler(this.BtnDanhSachDichVu_Click);
             //
             // btnDanhSachTienNghi
             //
@@ -292,7 +292,7 @@ namespace _6551071068_MAP_APP.Forms
             this.btnDanhSachTienNghi.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.btnDanhSachTienNghi.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.btnDanhSachTienNghi.UseVisualStyleBackColor = false;
-            this.btnDanhSachTienNghi.Click += new System.EventHandler(this.NavPlaceholder_Click);
+            this.btnDanhSachTienNghi.Click += new System.EventHandler(this.BtnDanhSachTienNghi_Click);
             //
             // btnDanhSachKhachHang
             //
@@ -312,7 +312,7 @@ namespace _6551071068_MAP_APP.Forms
             this.btnDanhSachKhachHang.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.btnDanhSachKhachHang.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.btnDanhSachKhachHang.UseVisualStyleBackColor = false;
-            this.btnDanhSachKhachHang.Click += new System.EventHandler(this.NavPlaceholder_Click);
+            this.btnDanhSachKhachHang.Click += new System.EventHandler(this.BtnDanhSachKhachHang_Click);
             //
             // btnDanhSachNhanVien
             //
@@ -332,7 +332,7 @@ namespace _6551071068_MAP_APP.Forms
             this.btnDanhSachNhanVien.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.btnDanhSachNhanVien.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.btnDanhSachNhanVien.UseVisualStyleBackColor = false;
-            this.btnDanhSachNhanVien.Click += new System.EventHandler(this.NavPlaceholder_Click);
+            this.btnDanhSachNhanVien.Click += new System.EventHandler(this.BtnDanhSachNhanVien_Click);
             //
             // btnDanhSachTaiKhoan
             //
