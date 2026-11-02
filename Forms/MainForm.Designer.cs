@@ -352,7 +352,7 @@ namespace _6551071068_MAP_APP.Forms
             this.btnDanhSachTaiKhoan.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.btnDanhSachTaiKhoan.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.btnDanhSachTaiKhoan.UseVisualStyleBackColor = false;
-            this.btnDanhSachTaiKhoan.Click += new System.EventHandler(this.NavPlaceholder_Click);
+            this.btnDanhSachTaiKhoan.Click += new System.EventHandler(this.BtnDanhSachTaiKhoan_Click);
             //
             // btnThongKe
             //

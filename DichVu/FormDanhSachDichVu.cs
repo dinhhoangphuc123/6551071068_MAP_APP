@@ -277,6 +277,16 @@ namespace HotelManagement.DichVu
             try
             {
                 using var db = new HotelManagementContext();
+                // Kiểm tra dịch vụ đang sử dụng trong phòng chưa thanh toán (C3)
+                bool dangDung = db.Ctdvs.Any(c => c.MaDv == maDV && c.DaXoa != true
+                    && c.MaCtdpNavigation != null && (c.MaCtdpNavigation.TrangThai == "Đang thuê" || c.MaCtdpNavigation.TrangThai == "Đặt trước"));
+                if (dangDung)
+                {
+                    MessageBox.Show("Dịch vụ này đang được khách phòng sử dụng chưa thanh toán, không thể xóa!", "Cảnh báo",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
                 var dichVu = db.DichVus.FirstOrDefault(d => d.MaDv == maDV && d.DaXoa != true);
 
                 if (dichVu == null)

@@ -1,4 +1,7 @@
-CREATE DATABASE HotelManagement
+IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'HotelManagement')
+BEGIN
+    CREATE DATABASE HotelManagement
+END
 GO
 USE HotelManagement
 GO

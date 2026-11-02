@@ -189,7 +189,7 @@ namespace HotelManagement.ChiTietTienNghi
                 }
                 else
                 {
-                    db.Cttns.Remove(chiTiet);
+                    chiTiet.DaXoa = true;
                     int kq = db.SaveChanges();
                     if (kq > 0)
                     {

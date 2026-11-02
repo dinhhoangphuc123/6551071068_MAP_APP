@@ -1,3 +1,4 @@
+using _6551071068_MAP_APP.Forms;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -194,6 +195,20 @@ namespace HotelManagement.NhanVien
 
         private void XoaNhanVien(string maNV)
         {
+            if (LoginForm.CapDoQuyenDangNhap < 2)
+            {
+                MessageBox.Show("Chỉ Quản lý và Quản trị viên mới có quyền xóa nhân viên.", "Từ chối",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (string.Equals(maNV, LoginForm.MaNvDangNhap, StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show("Bạn không thể xóa chính tài khoản nhân viên đang đăng nhập!", "Từ chối",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             try
             {
                 using var db = new HotelManagementContext();
@@ -205,26 +220,38 @@ namespace HotelManagement.NhanVien
                 {
                     MessageBox.Show("Không tìm thấy nhân viên cần xóa!", "Thông báo",
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Chặn xóa admin cuối cùng (C2)
+                bool coAdmin = nhanVien.TaiKhoans.Any(t => t.CapDoQuyen == 3 && t.DaXoa != true);
+                if (coAdmin)
+                {
+                    int soAdmin = db.TaiKhoans.Count(t => t.CapDoQuyen == 3 && t.DaXoa != true);
+                    if (soAdmin <= 1)
+                    {
+                        MessageBox.Show("Không thể xóa Quản trị viên cuối cùng của hệ thống!", "Từ chối",
+                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                }
+
+                nhanVien.DaXoa = true;
+                foreach (var taiKhoan in nhanVien.TaiKhoans)
+                {
+                    taiKhoan.DaXoa = true;
+                }
+
+                int kq = db.SaveChanges();
+                if (kq > 0)
+                {
+                    MessageBox.Show("Xóa nhân viên thành công.", "Thông báo",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 else
                 {
-                    nhanVien.DaXoa = true;
-                    foreach (var taiKhoan in nhanVien.TaiKhoans)
-                    {
-                        taiKhoan.DaXoa = true;
-                    }
-
-                    int kq = db.SaveChanges();
-                    if (kq > 0)
-                    {
-                        MessageBox.Show("Xóa nhân viên thành công.", "Thông báo",
-                            MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                    else
-                    {
-                        MessageBox.Show("Xóa nhân viên thất bại!", "Thông báo",
-                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    }
+                    MessageBox.Show("Xóa nhân viên thất bại!", "Thông báo",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             catch (Exception ex)
@@ -271,7 +298,16 @@ namespace HotelManagement.NhanVien
                     {
                         for (int j = 0; j < tenCot.Length; j++)
                         {
-                            worksheet.Cell(i + 2, j + 1).Value = dtgDanhSachNhanVien.Rows[i].Cells[tenCot[j]].Value?.ToString() ?? "";
+                            object? val = dtgDanhSachNhanVien.Rows[i].Cells[tenCot[j]].Value;
+                            if (tenCot[j] == "Luong" && val != null && decimal.TryParse(val.ToString()?.Replace(",", "").Replace(".", "").Replace("VNĐ", "").Trim(), out decimal numLuong))
+                            {
+                                worksheet.Cell(i + 2, j + 1).Value = numLuong;
+                                worksheet.Cell(i + 2, j + 1).Style.NumberFormat.Format = "#,##0";
+                            }
+                            else
+                            {
+                                worksheet.Cell(i + 2, j + 1).Value = val?.ToString() ?? "";
+                            }
                         }
                     }
 

@@ -46,6 +46,7 @@ public class HotelManagementContext : DbContext
     public DbSet<CTTN> Cttns => Set<CTTN>();
     public DbSet<DichVu> DichVus => Set<DichVu>();
     public DbSet<CTDV> Ctdvs => Set<CTDV>();
+    public DbSet<CTDV> CTDVs => Ctdvs;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

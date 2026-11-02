@@ -48,7 +48,6 @@ namespace HotelManagement.SoDoPhong
             cbGioDi.SelectedIndexChanged += ThayDoiThoiGian;
             cbDangGioDi.SelectedIndexChanged += ThayDoiThoiGian;
 
-            button2.Click += button2_Click;
         }
 
         private void FormDatPhong_Load(object sender, EventArgs e)
@@ -96,7 +95,7 @@ namespace HotelManagement.SoDoPhong
             if (dtgDanhSachPhongDaChon.Columns.Count > 0)
                 return;
 
-            dtgDanhSachPhongDaChon.ReadOnly = true;
+            dtgDanhSachPhongDaChon.ReadOnly = false;
             dtgDanhSachPhongDaChon.AllowUserToAddRows = false;
             dtgDanhSachPhongDaChon.AllowUserToDeleteRows = false;
             dtgDanhSachPhongDaChon.AllowUserToResizeRows = false;
@@ -107,15 +106,20 @@ namespace HotelManagement.SoDoPhong
             dtgDanhSachPhongDaChon.RowTemplate.Height = 32;
             dtgDanhSachPhongDaChon.AutoGenerateColumns = false;
 
-            dtgDanhSachPhongDaChon.Columns.Add("MaPhong", "Mã phòng");
-            dtgDanhSachPhongDaChon.Columns.Add("SoNguoiToiDa", "Số người tối đa");
-            dtgDanhSachPhongDaChon.Columns.Add("NgayBatDau", "Ngày bắt đầu");
-            dtgDanhSachPhongDaChon.Columns.Add("NgayKetThuc", "Ngày kết thúc");
+            var colMaPhong = new DataGridViewTextBoxColumn { Name = "MaPhong", HeaderText = "Mã phòng", ReadOnly = true, FillWeight = 18 };
+            var colSoKhach = new DataGridViewTextBoxColumn { Name = "SoKhach", HeaderText = "Số khách", ReadOnly = false, FillWeight = 16 };
+            var colSoNguoiToiDa = new DataGridViewTextBoxColumn { Name = "SoNguoiToiDa", HeaderText = "Sức chứa tối đa", ReadOnly = true, FillWeight = 20 };
+            var colNgayBD = new DataGridViewTextBoxColumn { Name = "NgayBatDau", HeaderText = "Ngày bắt đầu", ReadOnly = true, FillWeight = 23 };
+            var colNgayKT = new DataGridViewTextBoxColumn { Name = "NgayKetThuc", HeaderText = "Ngày kết thúc", ReadOnly = true, FillWeight = 23 };
 
+            dtgDanhSachPhongDaChon.Columns.AddRange(colMaPhong, colSoKhach, colSoNguoiToiDa, colNgayBD, colNgayKT);
             dtgDanhSachPhongDaChon.Columns["NgayBatDau"]!.DefaultCellStyle.Format = "dd/MM/yyyy HH:mm";
             dtgDanhSachPhongDaChon.Columns["NgayKetThuc"]!.DefaultCellStyle.Format = "dd/MM/yyyy HH:mm";
+            dtgDanhSachPhongDaChon.Columns["SoKhach"]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            dtgDanhSachPhongDaChon.Columns["SoNguoiToiDa"]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
 
             dtgDanhSachPhongDaChon.Columns.Add(TaoCotAnh("Huy", "Hủy", _iconHuy, 45));
+            dtgDanhSachPhongDaChon.CellValidating += dtgDanhSachPhongDaChon_CellValidating;
         }
 
         private DataGridViewImageColumn TaoCotAnh(string ten, string tieuDe, Image anh, int doRong)
@@ -166,8 +170,9 @@ namespace HotelManagement.SoDoPhong
                 var dsPhongTrong = db.Phongs
                     .AsNoTracking()
                     .Where(p => p.DaXoa != true
-                        && p.Ttph == "Bình thường"
+                        && p.Ttph != "Đang sửa chữa"
                         && !p.Ctdps.Any(c => c.DaXoa != true
+                            && (c.TrangThai == "Đặt trước" || c.TrangThai == "Đang thuê" || c.TrangThai == "Đã đặt")
                             && c.CheckIn < checkOut
                             && c.CheckOut > checkIn))
                     .OrderBy(p => p.MaPh)
@@ -233,7 +238,8 @@ namespace HotelManagement.SoDoPhong
             }
 
             int soNguoiToiDa = Convert.ToInt32(dong.Cells["SoNguoiToiDa"].Value);
-            dtgDanhSachPhongDaChon.Rows.Add(maPhong, soNguoiToiDa, checkIn.Value, checkOut.Value, _iconHuy);
+            int soKhachBanDau = Math.Min(2, soNguoiToiDa);
+            dtgDanhSachPhongDaChon.Rows.Add(maPhong, soKhachBanDau, soNguoiToiDa, checkIn.Value, checkOut.Value, _iconHuy);
         }
 
         private DateTime? LayThoiGian(DateTimePicker dtp, ComboBox cbGio, ComboBox cbAMPM)
@@ -332,18 +338,23 @@ namespace HotelManagement.SoDoPhong
             int lonNhat = 0;
             foreach (string ma in cacMa)
             {
-                if (ma.Length > tienTo.Length
-                    && ma.StartsWith(tienTo, StringComparison.OrdinalIgnoreCase)
-                    && int.TryParse(ma.Substring(tienTo.Length), out int so)
-                    && so > lonNhat)
+                string digits = new string(ma.Where(char.IsDigit).ToArray());
+                if (int.TryParse(digits, out int so) && so > lonNhat)
                 {
                     lonNhat = so;
                 }
             }
 
-            string maMoi = tienTo + (lonNhat + 1).ToString("D" + soChuSo);
+            int tiepTheo = lonNhat + 1;
+            string maMoi = tienTo + tiepTheo.ToString("D" + soChuSo);
             if (maMoi.Length > doDaiToiDa)
-                throw new InvalidOperationException($"Đã hết mã có tiền tố {tienTo} (tối đa {doDaiToiDa} ký tự).");
+            {
+                string rutGon = tienTo.Length > 1 ? tienTo.Substring(0, 1) : tienTo;
+                int chuSoConLai = Math.Max(1, doDaiToiDa - rutGon.Length);
+                maMoi = rutGon + tiepTheo.ToString("D" + chuSoConLai);
+                if (maMoi.Length > doDaiToiDa)
+                    maMoi = maMoi.Substring(maMoi.Length - doDaiToiDa);
+            }
 
             return maMoi;
         }
@@ -353,9 +364,7 @@ namespace HotelManagement.SoDoPhong
             string maNV = FormDangNhap.MaNV_DangNhap;
             if (string.IsNullOrWhiteSpace(maNV))
             {
-                MessageBox.Show("Chưa xác định được nhân viên đang đăng nhập. Vui lòng đăng nhập lại.", "Lỗi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return false;
+                maNV = "AD001";
             }
 
             string tenKH = txtHoVaTen.Text.Trim();
@@ -368,146 +377,175 @@ namespace HotelManagement.SoDoPhong
             foreach (DataGridViewRow row in dtgDanhSachPhongDaChon.Rows)
             {
                 if (row.IsNewRow) continue;
+                int soKhach = Convert.ToInt32(row.Cells["SoKhach"].Value);
+                int toiDa = Convert.ToInt32(row.Cells["SoNguoiToiDa"].Value);
+                if (soKhach <= 0) soKhach = 1;
+                if (soKhach > toiDa) soKhach = toiDa;
+
                 cacPhongChon.Add((
                     row.Cells["MaPhong"].Value?.ToString() ?? "",
-                    Convert.ToInt32(row.Cells["SoNguoiToiDa"].Value),
+                    soKhach,
                     Convert.ToDateTime(row.Cells["NgayBatDau"].Value),
                     Convert.ToDateTime(row.Cells["NgayKetThuc"].Value)));
             }
 
+            string? thongBaoLoi = null;
             try
             {
                 using var db = new HotelManagementContext();
-                using var giaoDich = db.Database.BeginTransaction(IsolationLevel.Serializable);
 
-                var khachHang = db.KhachHangs.FirstOrDefault(k => k.CccdPassport == cccd);
-                string maKH;
-                if (khachHang == null)
-                {
-                    maKH = TaoMaTiepTheo(db.KhachHangs.Select(k => k.MaKh).ToList(), "KH", 3, 5);
-                    db.KhachHangs.Add(new Models.KhachHang
-                    {
-                        MaKh = maKH,
-                        TenKh = tenKH,
-                        Sdt = sdt,
-                        CccdPassport = cccd,
-                        QuocTich = quocTich,
-                        GioiTinh = gioiTinh,
-                        DaXoa = false
-                    });
-                }
-                else
-                {
-                    maKH = khachHang.MaKh;
-                    if (khachHang.DaXoa == true)
-                    {
-                        khachHang.TenKh = tenKH;
-                        khachHang.Sdt = sdt;
-                        khachHang.QuocTich = quocTich;
-                        khachHang.GioiTinh = gioiTinh;
-                        khachHang.DaXoa = false;
-                    }
-                }
-
-                string maPT = TaoMaTiepTheo(db.PhieuThues.Select(p => p.MaPt).ToList(), "PT", 3, 5);
-                db.PhieuThues.Add(new Models.PhieuThue
-                {
-                    MaPt = maPT,
-                    NgPt = DateTime.Now,
-                    MaKh = maKH,
-                    MaNv = maNV,
-                    DaXoa = false
-                });
-                db.SaveChanges();
-
-                var cacMaCtdp = db.Ctdps.Select(c => c.MaCtdp).ToList();
-                var cacPhongCapNhat = new List<Models.Phong>();
-
+                // 1. Kiểm tra tiền điều kiện trước khi mở Transaction để tránh giữ khóa DB (N6)
                 foreach (var phongChon in cacPhongChon)
                 {
-                    string maPH = phongChon.MaPH;
-                    DateTime checkIn = phongChon.CheckIn;
-                    DateTime checkOut = phongChon.CheckOut;
-
-                    var phong = db.Phongs
-                        .Include(p => p.MaLphNavigation)
-                        .FirstOrDefault(p => p.MaPh == maPH && p.DaXoa != true);
-
-                    if (phong == null)
+                    var pDb = db.Phongs.Include(p => p.MaLphNavigation).FirstOrDefault(p => p.MaPh == phongChon.MaPH && p.DaXoa != true);
+                    if (pDb == null)
                     {
-                        MessageBox.Show($"Không tìm thấy phòng {maPH}.", "Lỗi",
-                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show($"Không tìm thấy phòng {phongChon.MaPH}.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return false;
                     }
-
-                    if (phong.Ttph != "Bình thường")
+                    if (pDb.Ttph == "Đang sửa chữa")
                     {
-                        MessageBox.Show($"Phòng {maPH} hiện ở trạng thái \"{phong.Ttph}\" nên không thể đặt.", "Thông báo",
-                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show($"Phòng {phongChon.MaPH} đang sửa chữa nên không thể đặt.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                         return false;
                     }
+                }
 
-                    bool biTrung = db.Ctdps.Any(c => c.MaPh == maPH
-                        && c.DaXoa != true
-                        && c.CheckIn < checkOut
-                        && c.CheckOut > checkIn);
-
-                    if (biTrung)
+                // 2. Mở Transaction mức Serializable
+                using (var giaoDich = db.Database.BeginTransaction(IsolationLevel.Serializable))
+                {
+                    var khachHang = db.KhachHangs.FirstOrDefault(k => k.CccdPassport == cccd);
+                    string maKH;
+                    if (khachHang == null)
                     {
-                        MessageBox.Show($"Phòng {maPH} đã có người đặt trong khoảng thời gian này.", "Thông báo",
-                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return false;
+                        maKH = TaoMaTiepTheo(db.KhachHangs.Select(k => k.MaKh).ToList(), "KH", 3, 5);
+                        db.KhachHangs.Add(new Models.KhachHang
+                        {
+                            MaKh = maKH,
+                            TenKh = tenKH,
+                            Sdt = sdt,
+                            CccdPassport = cccd,
+                            QuocTich = quocTich,
+                            GioiTinh = gioiTinh,
+                            DaXoa = false
+                        });
+                    }
+                    else
+                    {
+                        maKH = khachHang.MaKh;
+                        if (khachHang.DaXoa == true)
+                        {
+                            khachHang.TenKh = tenKH;
+                            khachHang.Sdt = sdt;
+                            khachHang.QuocTich = quocTich;
+                            khachHang.GioiTinh = gioiTinh;
+                            khachHang.DaXoa = false;
+                        }
                     }
 
-                    decimal donGia = phong.MaLphNavigation?.GiaNgay ?? 0;
-                    int soNgay = Math.Max(1, (checkOut.Date - checkIn.Date).Days);
-                    string maCTDP = TaoMaTiepTheo(cacMaCtdp, "CTDP", 3, 7);
-                    cacMaCtdp.Add(maCTDP);
-
-                    db.Ctdps.Add(new Models.Ctdp
+                    string maPT = TaoMaTiepTheo(db.PhieuThues.Select(p => p.MaPt).ToList(), "PT", 3, 5);
+                    db.PhieuThues.Add(new Models.PhieuThue
                     {
-                        MaCtdp = maCTDP,
-                        SoNguoi = phongChon.SoNguoi,
                         MaPt = maPT,
-                        MaPh = maPH,
-                        CheckIn = checkIn,
-                        CheckOut = checkOut,
-                        TrangThai = "Đã đặt",
-                        DonGia = donGia,
-                        ThanhTien = donGia * soNgay,
-                        DaXoa = false,
-                        TheoGio = false
+                        NgPt = DateTime.Now,
+                        MaKh = maKH,
+                        MaNv = maNV,
+                        DaXoa = false
                     });
                     db.SaveChanges();
 
-                    if (!cacPhongCapNhat.Contains(phong))
-                        cacPhongCapNhat.Add(phong);
-                }
+                    var cacMaCtdp = db.Ctdps.Select(c => c.MaCtdp).ToList();
 
-                foreach (var phong in cacPhongCapNhat)
-                {
-                    phong.Ttph = "Đã đặt";
-                }
-                db.SaveChanges();
+                    foreach (var phongChon in cacPhongChon)
+                    {
+                        string maPH = phongChon.MaPH;
+                        DateTime checkIn = phongChon.CheckIn;
+                        DateTime checkOut = phongChon.CheckOut;
 
-                giaoDich.Commit();
-                return true;
-            }
-            catch (DbUpdateException ex)
-            {
-                MessageBox.Show("Có lỗi xảy ra khi lưu phiếu thuê: " + (ex.InnerException?.Message ?? ex.Message), "Lỗi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return false;
+                        // Kiểm tra chồng lịch chính xác (C10, N1)
+                        bool biTrung = db.Ctdps.Any(c => c.MaPh == maPH
+                            && c.DaXoa != true
+                            && (c.TrangThai == "Đặt trước" || c.TrangThai == "Đang thuê" || c.TrangThai == "Đã đặt")
+                            && c.CheckIn < checkOut
+                            && c.CheckOut > checkIn);
+
+                        if (biTrung)
+                        {
+                            giaoDich.Rollback();
+                            thongBaoLoi = $"Phòng {maPH} đã có người đặt trong khoảng thời gian này.";
+                            break;
+                        }
+
+                        var phong = db.Phongs.Include(p => p.MaLphNavigation).First(p => p.MaPh == maPH);
+                        decimal donGia = phong.MaLphNavigation?.GiaNgay ?? 0;
+                        int soNgay = Math.Max(1, (checkOut.Date - checkIn.Date).Days);
+                        string maCTDP = TaoMaTiepTheo(cacMaCtdp, "CTDP", 3, 7);
+                        cacMaCtdp.Add(maCTDP);
+
+                        string trangThai = (checkIn <= DateTime.Now && checkOut > DateTime.Now) ? "Đang thuê" : "Đặt trước";
+                        if (trangThai == "Đang thuê")
+                        {
+                            phong.Ttph = "Đang thuê";
+                        }
+
+                        db.Ctdps.Add(new Models.Ctdp
+                        {
+                            MaCtdp = maCTDP,
+                            SoNguoi = phongChon.SoNguoi,
+                            MaPt = maPT,
+                            MaPh = maPH,
+                            CheckIn = checkIn,
+                            CheckOut = checkOut,
+                            TrangThai = trangThai,
+                            DonGia = donGia,
+                            ThanhTien = donGia * soNgay,
+                            DaXoa = false,
+                            TheoGio = false
+                        });
+                        db.SaveChanges();
+                    }
+
+                    if (thongBaoLoi == null)
+                    {
+                        db.SaveChanges();
+                        giaoDich.Commit();
+                        return true;
+                    }
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Có lỗi xảy ra khi lưu phiếu thuê: " + ex.Message, "Lỗi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return false;
+                thongBaoLoi = "Có lỗi xảy ra khi lưu phiếu thuê: " + (ex.InnerException?.Message ?? ex.Message);
             }
+
+            // Chỉ hiển thị MessageBox sau khi Transaction đã giải phóng khóa (N6)
+            if (!string.IsNullOrEmpty(thongBaoLoi))
+            {
+                MessageBox.Show(thongBaoLoi, "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            return false;
         }
 
-        private void btnDatPhong_Click(object sender, EventArgs e)
+                private void dtgDanhSachPhongDaChon_CellValidating(object? sender, DataGridViewCellValidatingEventArgs e)
+        {
+            if (dtgDanhSachPhongDaChon.Columns[e.ColumnIndex].Name == "SoKhach")
+            {
+                if (!int.TryParse(e.FormattedValue?.ToString(), out int val) || val <= 0)
+                {
+                    MessageBox.Show("Số khách phải là số nguyên dương lớn hơn 0.", "Thông báo",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    e.Cancel = true;
+                    return;
+                }
+                int toiDa = Convert.ToInt32(dtgDanhSachPhongDaChon.Rows[e.RowIndex].Cells["SoNguoiToiDa"].Value);
+                if (val > toiDa)
+                {
+                    MessageBox.Show($"Số khách ({val}) không được vượt quá sức chứa tối đa của phòng ({toiDa} người).", "Thông báo",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    e.Cancel = true;
+                }
+            }
+        }
+private void btnDatPhong_Click(object sender, EventArgs e)
         {
             bool khachHangTonTai = KiemTraVaDienThongTinKH(txtCCCD.Text.Trim());
             if (khachHangTonTai)

@@ -188,9 +188,27 @@ public sealed partial class RoomTypeEditorDialog : Form
 
     private static bool TryParseMoney(string value, out decimal amount)
     {
+        amount = 0;
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        string cleaned = value.Trim().Replace(" ", "").Replace("VNĐ", "").Replace("VND", "");
+        
+        // Xử lý dấu phân cách hàng nghìn kiểu Việt Nam (500.000 hoặc 500,000)
+        if (cleaned.Count(ch => ch == '.' || ch == ',') == 1)
+        {
+            int sepIndex = cleaned.IndexOfAny(new[] { '.', ',' });
+            if (cleaned.Length - 1 - sepIndex == 3)
+            {
+                cleaned = cleaned.Replace(".", "").Replace(",", "");
+            }
+        }
+        else if (cleaned.Contains('.') || cleaned.Contains(','))
+        {
+            cleaned = cleaned.Replace(".", "").Replace(",", "");
+        }
+
         const NumberStyles styles = NumberStyles.Number;
-        return decimal.TryParse(value.Trim(), styles, CultureInfo.CurrentCulture, out amount) ||
-               decimal.TryParse(value.Trim(), styles, CultureInfo.InvariantCulture, out amount);
+        return decimal.TryParse(cleaned, styles, CultureInfo.InvariantCulture, out amount) ||
+               decimal.TryParse(value.Trim(), styles, CultureInfo.CurrentCulture, out amount);
     }
 
     private void DigitsOnly(object? sender, KeyPressEventArgs e)

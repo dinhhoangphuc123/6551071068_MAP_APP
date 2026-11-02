@@ -8,7 +8,8 @@ public sealed partial class MainForm : Form
     {
         InitializeComponent();
         ConfigureResponsiveLayout();
-        lblUser.Text = LoginForm.TenNvDangNhap;
+        string vaiTro = LoginForm.CapDoQuyenDangNhap switch { 3 => "Quản trị viên", 2 => "Quản lý", _ => "Nhân viên" };
+        lblUser.Text = $"{LoginForm.TenNvDangNhap}\n({vaiTro})";
         ShowHome();
     }
 
@@ -43,10 +44,10 @@ public sealed partial class MainForm : Form
         int logoWidth = Math.Max(26, (int)(logoHeight * 0.62));
         picLogo.SetBounds(4, (headerHeight - logoHeight) / 2, logoWidth, logoHeight);
         lblTitle.Location = new Point(logoWidth + 14, Math.Max(4, (headerHeight - lblTitle.Height) / 2));
-        lblTitle.Font = new Font("Segoe UI Semibold", Math.Clamp(headerHeight * 0.22f, 12f, 16f), FontStyle.Bold);
+        var oldTFont = lblTitle.Font; lblTitle.Font = new Font("Segoe UI Semibold", Math.Clamp(headerHeight * 0.22f, 12f, 16f), FontStyle.Bold); oldTFont?.Dispose();
 
         linkDangXuat.Location = new Point(6, 5);
-        linkDangXuat.Font = new Font("Microsoft Sans Serif", Math.Clamp(headerHeight * 0.14f, 8.5f, 10f));
+        var oldLFont = linkDangXuat.Font; linkDangXuat.Font = new Font("Microsoft Sans Serif", Math.Clamp(headerHeight * 0.14f, 8.5f, 10f)); oldLFont?.Dispose();
         LayoutProfile();
         LayoutNavigation();
     }
@@ -64,7 +65,7 @@ public sealed partial class MainForm : Form
         picUser.SetBounds((pnlProfile.ClientSize.Width - imageWidth) / 2, 21, imageWidth, imageHeight);
         int labelTop = Math.Max(68, profileHeight - 27);
         lblUser.SetBounds(5, labelTop, Math.Max(0, pnlProfile.ClientSize.Width - 10), 24);
-        lblUser.Font = new Font("Microsoft Sans Serif", Math.Clamp(profileHeight * 0.071f, 8f, 10f), FontStyle.Bold);
+        var oldUFont = lblUser.Font; lblUser.Font = new Font("Microsoft Sans Serif", Math.Clamp(profileHeight * 0.071f, 8f, 10f), FontStyle.Bold); oldUFont?.Dispose();
     }
 
     private void LayoutNavigation()
@@ -106,7 +107,7 @@ public sealed partial class MainForm : Form
 
                 fontSize -= 0.5f;
             }
-            buttons[index].Font = new Font("Microsoft Sans Serif", fontSize);
+            var oldBFont = buttons[index].Font; buttons[index].Font = new Font("Microsoft Sans Serif", fontSize); oldBFont?.Dispose();
         }
     }
 
@@ -158,10 +159,16 @@ public sealed partial class MainForm : Form
     private void BtnDanhSachTienNghi_Click(object? sender, EventArgs e) => ShowHostedForm(new HotelManagement.TienNghi.FormDanhSachTienNghi());
     private void BtnDanhSachKhachHang_Click(object? sender, EventArgs e) => ShowHostedForm(new HotelManagement.KhachHang.FormDanhSachKhachHang());
     private void BtnDanhSachNhanVien_Click(object? sender, EventArgs e) => ShowHostedForm(new HotelManagement.NhanVien.FormDanhSachNhanVien());
-    private void BtnDanhSachDatPhong_Click(object? sender, EventArgs e)
+    private void BtnDanhSachDatPhong_Click(object? sender, EventArgs e) => SetPage(new BookingListControl());
+    private void BtnDanhSachTaiKhoan_Click(object? sender, EventArgs e)
     {
-        using var form = new HotelManagement.SoDoPhong.FormDatPhong();
-        form.ShowDialog(this);
+        if (LoginForm.CapDoQuyenDangNhap < 2)
+        {
+            MessageBox.Show("Chức năng Quản lý tài khoản chỉ dành cho Quản lý và Quản trị viên.", "Phân quyền",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        SetPage(new AccountListControl());
     }
 
     private void ShowPlaceholder(string title)
@@ -190,7 +197,8 @@ public sealed partial class MainForm : Form
         using var login = new LoginForm();
         if (login.ShowDialog() == DialogResult.OK)
         {
-            lblUser.Text = LoginForm.TenNvDangNhap;
+            string vaiTro = LoginForm.CapDoQuyenDangNhap switch { 3 => "Quản trị viên", 2 => "Quản lý", _ => "Nhân viên" };
+        lblUser.Text = $"{LoginForm.TenNvDangNhap}\n({vaiTro})";
             ShowHome();
             Show();
             Activate();

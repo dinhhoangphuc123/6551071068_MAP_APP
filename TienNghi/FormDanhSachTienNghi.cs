@@ -230,6 +230,15 @@ namespace HotelManagement.TienNghi
             try
             {
                 using var db = new HotelManagementContext();
+                // Kiểm tra tiện nghi đang gán vào loại phòng (C3)
+                bool dangGan = db.Cttns.Any(c => c.MaTn == maTN && c.DaXoa != true);
+                if (dangGan)
+                {
+                    MessageBox.Show("Tiện nghi này đang được gán cho loại phòng trong khách sạn, không thể xóa!", "Cảnh báo",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
                 var tienNghi = db.TienNghis.FirstOrDefault(t => t.MaTn == maTN);
                 if (tienNghi == null)
                 {

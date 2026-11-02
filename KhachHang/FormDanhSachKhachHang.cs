@@ -260,6 +260,17 @@ namespace HotelManagement.KhachHang
             try
             {
                 using var db = new HotelManagementContext();
+                // Kiểm tra ràng buộc trước khi xóa mềm (C3)
+                bool dangCoLich = db.PhieuThues
+                    .Any(pt => pt.MaKh == maKH && pt.DaXoa != true
+                        && pt.Ctdps.Any(ct => ct.DaXoa != true && (ct.TrangThai == "Đặt trước" || ct.TrangThai == "Đang thuê")));
+                if (dangCoLich)
+                {
+                    MessageBox.Show("Khách hàng này đang có phòng đặt trước hoặc đang thuê, không thể xóa!", "Cảnh báo",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
                 var khachHang = db.KhachHangs.FirstOrDefault(k => k.MaKh == maKH);
                 if (khachHang == null)
                 {

@@ -58,14 +58,14 @@ public sealed partial class FloorPlanControl : UserControl
     private static void LayoutFilterGroup(Label title, RadioButton[] radios, Panel panel, float titleFont)
     {
         title.SetBounds(12, 5, Math.Max(0, panel.ClientSize.Width - 24), 25);
-        title.Font = new Font("Segoe UI", titleFont, FontStyle.Bold);
+        var oldTFont = title.Font; title.Font = new Font("Segoe UI", titleFont, FontStyle.Bold); oldTFont?.Dispose();
 
         int rowHeight = Math.Max(20, (panel.ClientSize.Height - 38) / radios.Length);
         float radioFont = Math.Clamp(rowHeight * 0.34f, 8f, 10.5f);
         for (int index = 0; index < radios.Length; index++)
         {
             radios[index].Location = new Point(10, 32 + index * rowHeight);
-            radios[index].Font = new Font("Microsoft Sans Serif", radioFont);
+            var oldRFont = radios[index].Font; radios[index].Font = new Font("Microsoft Sans Serif", radioFont); oldRFont?.Dispose();
         }
     }
 
@@ -88,7 +88,7 @@ public sealed partial class FloorPlanControl : UserControl
         txtSearch.SetBounds(x, 22, Math.Max(80, buttonX - x - 8), 27);
         btnDatPhong.SetBounds(buttonX, 10, Math.Min(buttonWidth, Math.Max(0, width - buttonX - 6)), 54);
         float actionFont = Math.Clamp(buttonWidth / 12f, 8.5f, 12f);
-        btnDatPhong.Font = new Font("Microsoft Sans Serif", actionFont, FontStyle.Bold);
+        var oldBFont = btnDatPhong.Font; btnDatPhong.Font = new Font("Microsoft Sans Serif", actionFont, FontStyle.Bold); oldBFont?.Dispose();
     }
 
     private void Filter_Changed(object? sender, EventArgs e) => ScheduleReload();
@@ -162,8 +162,8 @@ public sealed partial class FloorPlanControl : UserControl
             {
                 DateTime start = dtpDate.Value.Date;
                 DateTime end = start.AddDays(1);
-                query = query.Where(p => p.Ttph == "Bình thường" &&
-                    !p.Ctdps.Any(c => c.DaXoa != true && c.CheckIn < end && c.CheckOut > start));
+                query = query.Where(p => p.Ttph != "Đang sửa chữa" &&
+                    !p.Ctdps.Any(c => c.DaXoa != true && (c.TrangThai == "Đặt trước" || c.TrangThai == "Đang thuê" || c.TrangThai == "Đã đặt") && c.CheckIn < end && c.CheckOut > start));
             }
 
             var rooms = await query
@@ -178,6 +178,8 @@ public sealed partial class FloorPlanControl : UserControl
                     p.GhiChu
                 })
                 .ToListAsync();
+
+            if (IsDisposed) return;
 
             dgvRooms.Rows.Clear();
             foreach (var room in rooms)

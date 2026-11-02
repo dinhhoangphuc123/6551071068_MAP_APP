@@ -240,7 +240,7 @@ namespace HotelManagement.NhanVien
             // 
             cbChucVu.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Regular, GraphicsUnit.Point, 0);
             cbChucVu.FormattingEnabled = true;
-            cbChucVu.Items.AddRange(new object[] { "Người quản trị hệ thống", "Quản lý khách sạn", "Nhân viên" });
+            cbChucVu.Items.AddRange(new object[] { "Quản lý", "Tiếp tân", "Bảo vệ", "Nhân viên vệ sinh", "Nhân viên", "Người quản trị hệ thống", "Quản lý khách sạn" });
             cbChucVu.Location = new Point(202, 82);
             cbChucVu.Margin = new Padding(3, 4, 3, 4);
             cbChucVu.Name = "cbChucVu";

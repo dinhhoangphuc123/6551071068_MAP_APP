@@ -177,20 +177,36 @@ namespace HotelManagement.NhanVien
                 };
 
                 db.NhanViens.Add(nhanVien);
-                int kq = db.SaveChanges();
+                db.SaveChanges();
 
-                if (kq > 0)
+                // Tự động tạo tài khoản đăng nhập cho nhân viên mới (N5)
+                int capQuyen = 1;
+                if (chucVu.Contains("Quản trị", StringComparison.OrdinalIgnoreCase) || chucVu.Contains("Admin", StringComparison.OrdinalIgnoreCase))
+                    capQuyen = 3;
+                else if (chucVu.Contains("Quản lý", StringComparison.OrdinalIgnoreCase))
+                    capQuyen = 2;
+
+                string matKhauMacDinh = "123456";
+                string matKhauHash = _6551071068_MAP_APP.Data.PasswordHasher.Hash(matKhauMacDinh);
+
+                if (!db.TaiKhoans.Any(t => t.TenTk == maNV))
                 {
-                    MessageBox.Show("Thêm nhân viên thành công.", "Thông báo",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    DialogResult = DialogResult.OK;
-                    Close();
+                    db.TaiKhoans.Add(new HotelManagement.Models.TaiKhoan
+                    {
+                        TenTk = maNV,
+                        Password = matKhauHash,
+                        CapDoQuyen = capQuyen,
+                        MaNv = maNV,
+                        DaXoa = false
+                    });
+                    db.SaveChanges();
                 }
-                else
-                {
-                    MessageBox.Show("Thêm nhân viên thất bại!", "Thông báo",
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                }
+
+                MessageBox.Show(
+                    $"Thêm nhân viên thành công!\n\nTài khoản đăng nhập đã được khởi tạo tự động:\n- Tên đăng nhập: {maNV}\n- Mật khẩu mặc định: {matKhauMacDinh}\n- Cấp quyền: Cấp {capQuyen}\n(Nhân viên có thể đổi mật khẩu sau khi đăng nhập).",
+                    "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                DialogResult = DialogResult.OK;
+                Close();
             }
             catch (Exception ex)
             {

@@ -100,6 +100,24 @@ namespace HotelManagement.KhachHang
                 return;
             }
 
+            // Kiểm tra định dạng CCCD (10 hoặc 12 số) (T5)
+            if ((cccd.Length != 10 && cccd.Length != 12) || !cccd.All(char.IsDigit))
+            {
+                MessageBox.Show("Số CCCD/Passport phải gồm đúng 10 hoặc 12 chữ số!", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtCCCD.Focus();
+                return;
+            }
+
+            // Kiểm tra định dạng SĐT (10 số) (T5)
+            if (!string.IsNullOrEmpty(sdt) && (sdt.Length != 10 || !sdt.All(char.IsDigit)))
+            {
+                MessageBox.Show("Số điện thoại phải gồm đúng 10 chữ số!", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtSoDienThoai.Focus();
+                return;
+            }
+
             if (string.IsNullOrEmpty(quocTich))
             {
                 MessageBox.Show("Vui lòng nhập quốc tịch!", "Thông báo",
@@ -119,9 +137,32 @@ namespace HotelManagement.KhachHang
             try
             {
                 using var db = new HotelManagementContext();
-                if (db.KhachHangs.Any(k => k.CccdPassport == cccd))
+                var khTonTai = db.KhachHangs.FirstOrDefault(k => k.CccdPassport == cccd);
+                if (khTonTai != null)
                 {
-                    MessageBox.Show("Số CCCD/Passport đã tồn tại!", "Thông báo",
+                    // Cơ chế khôi phục nếu khách hàng đã xóa mềm trước đó (C9)
+                    if (khTonTai.DaXoa == true)
+                    {
+                        var hoiKhoiPhuc = MessageBox.Show(
+                            $"Khách hàng {khTonTai.TenKh} (CCCD: {cccd}) đã từng tồn tại và bị xóa trước đó.\nBạn có muốn KHÔI PHỤC lại khách hàng này không?",
+                            "Khôi phục khách hàng", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+                        if (hoiKhoiPhuc == DialogResult.Yes)
+                        {
+                            khTonTai.DaXoa = false;
+                            khTonTai.TenKh = tenKH;
+                            khTonTai.Sdt = string.IsNullOrEmpty(sdt) ? null : sdt;
+                            khTonTai.QuocTich = quocTich;
+                            khTonTai.GioiTinh = gioiTinh;
+                            db.SaveChanges();
+                            MessageBox.Show("Khôi phục khách hàng thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            DialogResult = DialogResult.OK;
+                            Close();
+                            return;
+                        }
+                    }
+
+                    MessageBox.Show("Số CCCD/Passport này đang tồn tại trong hệ thống!", "Thông báo",
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     txtCCCD.Focus();
                     return;
