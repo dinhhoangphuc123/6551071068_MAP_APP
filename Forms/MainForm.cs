@@ -159,7 +159,9 @@ public sealed partial class MainForm : Form
     private void BtnDanhSachTienNghi_Click(object? sender, EventArgs e) => ShowHostedForm(new HotelManagement.TienNghi.FormDanhSachTienNghi());
     private void BtnDanhSachKhachHang_Click(object? sender, EventArgs e) => ShowHostedForm(new HotelManagement.KhachHang.FormDanhSachKhachHang());
     private void BtnDanhSachNhanVien_Click(object? sender, EventArgs e) => ShowHostedForm(new HotelManagement.NhanVien.FormDanhSachNhanVien());
-    private void BtnDanhSachDatPhong_Click(object? sender, EventArgs e) => SetPage(new BookingListControl());
+    private void BtnDanhSachDatPhong_Click(object? sender, EventArgs e) => ShowHostedForm(new HotelManagement.PhieuThue.FormDanhSachPhieuThue());
+    private void BtnDanhSachHoaDon_Click(object? sender, EventArgs e) => ShowHostedForm(new HotelManagement.HoaDon.FormDanhSachHoaDon());
+    private void BtnThongKe_Click(object? sender, EventArgs e) => ShowHostedForm(new HotelManagement.ThongKe.FormThongKe());
     private void BtnDanhSachTaiKhoan_Click(object? sender, EventArgs e)
     {
         if (LoginForm.CapDoQuyenDangNhap < 2)
@@ -168,7 +170,7 @@ public sealed partial class MainForm : Form
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
-        SetPage(new AccountListControl());
+        ShowHostedForm(new HotelManagement.TaiKhoan.FormDanhSachTaiKhoan());
     }
 
     private void ShowPlaceholder(string title)

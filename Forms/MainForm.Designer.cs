@@ -252,7 +252,7 @@ namespace _6551071068_MAP_APP.Forms
             this.btnDanhSachHoaDon.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.btnDanhSachHoaDon.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.btnDanhSachHoaDon.UseVisualStyleBackColor = false;
-            this.btnDanhSachHoaDon.Click += new System.EventHandler(this.NavPlaceholder_Click);
+            this.btnDanhSachHoaDon.Click += new System.EventHandler(this.BtnDanhSachHoaDon_Click);
             //
             // btnDanhSachDichVu
             //
@@ -372,7 +372,7 @@ namespace _6551071068_MAP_APP.Forms
             this.btnThongKe.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.btnThongKe.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.btnThongKe.UseVisualStyleBackColor = false;
-            this.btnThongKe.Click += new System.EventHandler(this.NavPlaceholder_Click);
+            this.btnThongKe.Click += new System.EventHandler(this.BtnThongKe_Click);
             //
             // pnlMainContent
             //

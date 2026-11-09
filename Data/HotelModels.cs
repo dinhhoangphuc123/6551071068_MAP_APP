@@ -68,6 +68,8 @@ public class Ctdp
     public bool? TheoGio { get; set; }
     public Phong? MaPhNavigation { get; set; }
     public PhieuThue? MaPtNavigation { get; set; }
+    public ICollection<CTDV> Ctdvs { get; set; } = new List<CTDV>();
+    public ICollection<HoaDon> HoaDons { get; set; } = new List<HoaDon>();
 }
 
 public class KhachHang

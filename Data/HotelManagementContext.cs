@@ -13,6 +13,7 @@ global using PhieuThue = HotelManagement.Models.PhieuThue;
 global using HoaDon = HotelManagement.Models.HoaDon;
 global using TaiKhoan = HotelManagement.Models.TaiKhoan;
 global using CTDV = HotelManagement.Models.CTDV;
+global using Ctdv = HotelManagement.Models.CTDV;
 
 using HotelManagement.Models;
 using Microsoft.EntityFrameworkCore;
@@ -142,6 +143,10 @@ public class HotelManagementContext : DbContext
                 .WithMany(x => x.Ctdps)
                 .HasForeignKey(x => x.MaPt)
                 .HasPrincipalKey(x => x.MaPt);
+            entity.HasMany(x => x.Ctdvs)
+                .WithOne(x => x.MaCtdpNavigation)
+                .HasForeignKey(x => x.MaCtdp)
+                .HasPrincipalKey(x => x.MaCtdp);
         });
 
         modelBuilder.Entity<KhachHang>(entity =>
@@ -182,7 +187,10 @@ public class HotelManagementContext : DbContext
             entity.Property(x => x.MaCtdp).HasColumnName("MaCTDP").HasMaxLength(7).IsUnicode().IsRequired();
             entity.Property(x => x.DaXoa).HasColumnName("DaXoa");
             entity.HasOne(x => x.MaNvNavigation).WithMany().HasForeignKey(x => x.MaNv).HasPrincipalKey(x => x.MaNv);
-            entity.HasOne(x => x.MaCtdpNavigation).WithMany().HasForeignKey(x => x.MaCtdp).HasPrincipalKey(x => x.MaCtdp);
+            entity.HasOne(x => x.MaCtdpNavigation)
+                .WithMany(x => x.HoaDons)
+                .HasForeignKey(x => x.MaCtdp)
+                .HasPrincipalKey(x => x.MaCtdp);
         });
 
         modelBuilder.Entity<TienNghi>(entity =>
@@ -228,7 +236,7 @@ public class HotelManagementContext : DbContext
             entity.Property(x => x.DonGia).HasColumnName("DonGia").HasColumnType("money");
             entity.Property(x => x.DaXoa).HasColumnName("DaXoa");
             entity.Property(x => x.ThanhTien).HasColumnName("ThanhTien").HasColumnType("money");
-            entity.HasOne(x => x.MaCtdpNavigation).WithMany().HasForeignKey(x => x.MaCtdp).HasPrincipalKey(x => x.MaCtdp);
+            entity.HasOne(x => x.MaCtdpNavigation).WithMany(x => x.Ctdvs).HasForeignKey(x => x.MaCtdp).HasPrincipalKey(x => x.MaCtdp);
             entity.HasOne(x => x.MaDvNavigation).WithMany().HasForeignKey(x => x.MaDv).HasPrincipalKey(x => x.MaDv);
         });
     }
